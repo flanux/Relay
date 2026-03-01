@@ -348,7 +348,14 @@ class RelayApp {
         const checkbox = document.getElementById('autoSave');
         if (checkbox) {
             this.slideSync.setAutoSave(checkbox.checked);
-            const status = checkbox.checked ? 'enabled' : 'disabled';
+            const status = checkbox.checked ? 'ON' : 'OFF';
+            
+            // Update label text
+            const label = checkbox.closest('.auto-save-toggle').querySelector('small');
+            if (label) {
+                label.textContent = `Auto-capture (${status})`;
+            }
+            
             this.showNotification(`Auto-capture ${status}`, 'info');
         }
     }
@@ -589,6 +596,16 @@ class RelayApp {
             content.classList.remove('active');
         });
         document.getElementById(tabName + 'Tab')?.classList.add('active');
+    }
+
+    toggleSection(sectionId) {
+        // Only on mobile - toggle expand/collapse
+        if (window.innerWidth <= 640) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.classList.toggle('expanded');
+            }
+        }
     }
 
     // ========== QR Code ==========
