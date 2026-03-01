@@ -1,5 +1,5 @@
 /**
- * Relay - Main Application
+ * Relay - Main Application (FIXED)
  * P2P Collaboration Hub for LAN
  */
 class RelayApp {
@@ -44,11 +44,14 @@ class RelayApp {
         console.log('✅ Relay ready');
     }
 
-    // ========== Room Management ==========
+    // ========== Room Management (UPDATED FOR P2P FIX) ==========
 
     async createRoom() {
         try {
-            this.p2p = new P2PManager();
+            // FIX: Auto-detect the Python server's IP
+            const signalingIp = window.location.hostname || 'localhost';
+            
+            this.p2p = new P2PManager(signalingIp);
             this.roomId = await this.p2p.createRoom();
             this.isHost = true;
             this.username = 'Host';
@@ -84,7 +87,7 @@ class RelayApp {
 
         } catch (error) {
             console.error('Failed to create room:', error);
-            this.showNotification('Failed to create room', 'error');
+            this.showNotification('Failed to create room. Is Python server running?', 'error');
         }
     }
 
@@ -98,7 +101,10 @@ class RelayApp {
         }
 
         try {
-            this.p2p = new P2PManager();
+            // FIX: Auto-detect the Python server's IP from the URL
+            const signalingIp = window.location.hostname || 'localhost';
+
+            this.p2p = new P2PManager(signalingIp);
             await this.p2p.joinRoom(roomCode);
 
             this.roomId = roomCode;
@@ -121,18 +127,14 @@ class RelayApp {
             document.getElementById('participantRoomCode').textContent = roomCode;
             document.getElementById('participantNameDisplay').textContent = username;
 
-            // Announce join
-            this.p2p.broadcast({
-                type: 'user_joined',
-                username: username,
-                userId: this.p2p.localId
-            });
-
-            this.showNotification(`Joined room: ${roomCode}`, 'success');
+            // Announce join - Note: This happens AFTER WebRTC connects
+            // Usually triggered via onPeerConnect callback for reliability
+            
+            this.showNotification(`Connecting to room: ${roomCode}...`, 'info');
 
         } catch (error) {
             console.error('Failed to join room:', error);
-            this.showNotification('Failed to join room', 'error');
+            this.showNotification('Failed to join room. Check connection.', 'error');
         }
     }
 
@@ -142,12 +144,22 @@ class RelayApp {
         });
 
         this.p2p.onPeerConnect((peerId) => {
-            console.log('Peer connected:', peerId);
+            console.log('✅ Peer connected:', peerId);
+            
+            // If we are the participant, announce our username to the host
+            if (!this.isHost) {
+                this.p2p.send(peerId, {
+                    type: 'user_joined',
+                    username: this.username,
+                    userId: this.p2p.localId
+                });
+            }
+            
             this.updateParticipantCount();
         });
 
         this.p2p.onPeerDisconnect((peerId) => {
-            console.log('Peer disconnected:', peerId);
+            console.log('❌ Peer disconnected:', peerId);
             this.removeParticipant(peerId);
             this.updateParticipantCount();
         });
@@ -217,11 +229,13 @@ class RelayApp {
         const empty = list.querySelector('.empty');
         if (empty) empty.remove();
 
-        // Add participant
-        const li = document.createElement('li');
-        li.dataset.peerId = peerId;
-        li.textContent = `👤 ${username}`;
-        list.appendChild(li);
+        // Add participant if not already there
+        if (!document.querySelector(`[data-peer-id="${peerId}"]`)) {
+            const li = document.createElement('li');
+            li.dataset.peerId = peerId;
+            li.textContent = `👤 ${username}`;
+            list.appendChild(li);
+        }
 
         this.updateParticipantCount();
         this.showNotification(`${username} joined`, 'info');
@@ -430,7 +444,6 @@ class RelayApp {
         const files = Array.from(fileList);
         
         for (const file of files) {
-            // Check file size (max 10MB)
             if (file.size > 10 * 1024 * 1024) {
                 this.showNotification(`File too large: ${file.name} (max 10MB)`, 'error');
                 continue;
@@ -447,13 +460,11 @@ class RelayApp {
             this.files.push(fileInfo);
             this.displayFile(fileInfo);
 
-            // Broadcast metadata
             this.p2p.broadcast({
                 type: 'file_metadata',
                 file: fileInfo
             });
 
-            // Read file and broadcast chunks (simplified)
             const reader = new FileReader();
             reader.onload = (e) => {
                 const data = e.target.result;
@@ -480,7 +491,6 @@ class RelayApp {
         const list = document.getElementById(listId);
         if (!list) return;
 
-        // Remove empty state
         const empty = list.querySelector('.empty');
         if (empty) empty.remove();
 
@@ -570,13 +580,11 @@ class RelayApp {
     }
 
     switchTab(tabName) {
-        // Update buttons
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.remove('active');
         });
         document.querySelector(`[data-tab="${tabName}"]`)?.classList.add('active');
 
-        // Update content
         document.querySelectorAll('.tab-content').forEach(content => {
             content.classList.remove('active');
         });
@@ -592,10 +600,8 @@ class RelayApp {
 
         if (!modal || !container || !this.roomId) return;
 
-        // Clear previous QR
         container.innerHTML = '';
 
-        // Create QR code
         try {
             const qr = new QRCode(container, {
                 text: this.roomId,
@@ -680,7 +686,6 @@ class RelayApp {
 
     setupKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
-            // Ctrl/Cmd + Enter to send chat
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 const chatInput = document.getElementById('chatInput');
                 if (chatInput && document.activeElement === chatInput) {
