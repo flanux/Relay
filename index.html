@@ -222,17 +222,19 @@
                         </button>
                         <div class="auto-save-toggle">
                             <label class="switch">
-                                <input type="checkbox" id="autoSave" checked onchange="app.toggleAutoSave()">
+                                <input type="checkbox" id="autoSave" onchange="app.toggleAutoSave()">
                                 <span class="slider"></span>
                             </label>
-                            <small>Auto-capture</small>
+                            <small>Auto-capture (OFF)</small>
                         </div>
                     </div>
                 </div>
 
                 <!-- Gallery Section -->
-                <div class="gallery-section">
-                    <h4>📚 My Saved Slides (<span id="savedCount">0</span>)</h4>
+                <div class="gallery-section" id="gallerySection">
+                    <h4 style="cursor: pointer; user-select: none;" onclick="app.toggleSection('gallerySection')">
+                        📚 My Saved Slides (<span id="savedCount">0</span>) <span class="toggle-indicator">▼</span>
+                    </h4>
                     <div class="slide-gallery" id="slideGallery">
                         <p class="empty-state">Saved slides appear here</p>
                     </div>
@@ -242,8 +244,11 @@
                 </div>
 
                 <!-- Tools Section -->
-                <div class="tools-section">
+                <div class="tools-section" id="toolsSection">
                     <div class="tabs">
+                        <h4 style="cursor: pointer; user-select: none; margin: 0 0 1rem 0;" onclick="app.toggleSection('toolsSection')">
+                            🛠️ Tools <span class="toggle-indicator">▼</span>
+                        </h4>
                         <button class="tab-btn active" data-tab="files" onclick="app.switchTab('files')">📁 Files</button>
                         <button class="tab-btn" data-tab="polls" onclick="app.switchTab('polls')">📊 Polls</button>
                         <button class="tab-btn" data-tab="chat" onclick="app.switchTab('chat')">💬 Chat</button>
