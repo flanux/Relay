@@ -597,13 +597,12 @@ class RelayApp {
 
         // Create QR code
         try {
-            new QRCode(container, {
-                text: window.location.origin + '/#' + this.roomId,
+            const qr = new QRCode(container, {
+                text: this.roomId,
                 width: 256,
                 height: 256,
                 colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
+                colorLight: "#ffffff"
             });
 
             codeDisplay.textContent = this.roomId;
@@ -641,9 +640,15 @@ class RelayApp {
     showView(viewId) {
         document.querySelectorAll('.view').forEach(view => {
             view.classList.remove('active');
+            view.style.display = 'none';
         });
 
-        document.getElementById(viewId)?.classList.add('active');
+        const targetView = document.getElementById(viewId);
+        if (targetView) {
+            targetView.classList.add('active');
+            targetView.style.display = 'block';
+            window.scrollTo(0, 0);
+        }
     }
 
     showNotification(message, type = 'info') {
