@@ -10,7 +10,9 @@ class SlideSync {
         this.captureInterval = null;
         this.lastFrameTime = 0;
         this.frameRate = 2; // 2 fps for slide capture
-        this.autoSave = true;
+        this.autoSave = false; // OFF by default
+        this.lastSavedData = null; // Track to avoid duplicates
+        this.autoSaveDebounce = null; // Debounce timer
         
         // Elements
         this.previewVideo = null;
@@ -146,9 +148,18 @@ class SlideSync {
                 liveBadge.classList.add('active');
             }
 
-            // Auto-save if enabled
-            if (this.autoSave) {
-                this.saveSlide(imageData);
+            // Auto-save if enabled AND data is different
+            if (this.autoSave && imageData !== this.lastSavedData) {
+                // Clear previous debounce
+                if (this.autoSaveDebounce) {
+                    clearTimeout(this.autoSaveDebounce);
+                }
+                
+                // Wait 2 seconds of stability before saving
+                this.autoSaveDebounce = setTimeout(() => {
+                    this.saveSlide(imageData);
+                    this.lastSavedData = imageData;
+                }, 2000);
             }
         }
     }
