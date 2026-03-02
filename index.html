@@ -304,8 +304,31 @@
         </div>
     </div>
 
+    <!-- QR Scanner Modal -->
+	<div id="scannerModal" class="modal hidden">
+	  <div class="modal-content" style="max-width: 400px;">
+	    <div class="modal-header">
+	      <h3>📷 Scan QR Code</h3>
+	      <button class="modal-close" onclick="app.hideQRScanner()">&times;</button>
+	    </div>
+	    
+	    <div id="qr-reader" style="width: 100%; background: #000; border-radius: 8px; overflow: hidden;"></div>
+	    
+	    <div class="scanner-hint" style="text-align: center; padding: 1rem; color: #94a3b8;">
+	      <p>Point camera at host's QR code</p>
+	      <small>Room code will auto-fill</small>
+	    </div>
+	    
+	    <div class="scanner-actions" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+	      <button class="btn btn-secondary" onclick="app.hideQRScanner()" style="flex: 1;">Cancel</button>
+	      <button class="btn btn-primary" onclick="app.useManualCode()" style="flex: 1;">Enter Manually</button>
+	    </div>
+	  </div>
+	</div>
+
     <!-- Scripts -->
     <script src="lib/qrcode.min.js"></script>
+    <script src="lib/html5-qrcode.min.js"></script>
     <script src="modules/storage.js"></script>
     <script src="modules/webrtc.js"></script>
     <script src="modules/slides.js"></script>
