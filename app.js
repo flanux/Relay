@@ -615,12 +615,31 @@ class RelayApp {
         const container = document.getElementById('qrCodeContainer');
         const codeDisplay = document.getElementById('qrRoomCode');
 
-        if (!modal || !container || !this.roomId) return;
+        if (!modal || !container || !this.roomId) {
+            console.error('QR: Missing elements');
+            return;
+        }
 
+        // Clear previous content
         container.innerHTML = '';
 
+        // Check if QRCode library is loaded
+        if (typeof QRCode === 'undefined') {
+            console.error('❌ QRCode library not loaded!');
+            container.innerHTML = '<div style="background: white; padding: 2rem; border-radius: 1rem;"><p style="color: #ef4444;">QR library not loaded</p></div>';
+            codeDisplay.textContent = this.roomId;
+            modal.classList.remove('hidden');
+            return;
+        }
+
         try {
-            const qr = new QRCode(container, {
+            // Create a wrapper div for the QR code
+            const qrWrapper = document.createElement('div');
+            qrWrapper.style.cssText = 'background: white; padding: 2rem; border-radius: 1rem; display: inline-block;';
+            container.appendChild(qrWrapper);
+
+            // Generate QR code into the wrapper
+            new QRCode(qrWrapper, {
                 text: this.roomId,
                 width: 256,
                 height: 256,
@@ -628,11 +647,18 @@ class RelayApp {
                 colorLight: "#ffffff"
             });
 
+            // Update room code display
+            codeDisplay.textContent = this.roomId;
+            
+            // Show modal
+            modal.classList.remove('hidden');
+            
+            console.log('✅ QR code generated successfully');
+        } catch (error) {
+            console.error('❌ QR generation error:', error);
+            container.innerHTML = '<div style="background: white; padding: 2rem; border-radius: 1rem;"><p style="color: #ef4444;">QR generation failed: ' + error.message + '</p></div>';
             codeDisplay.textContent = this.roomId;
             modal.classList.remove('hidden');
-        } catch (error) {
-            console.error('QR code error:', error);
-            this.showNotification('Failed to generate QR code', 'error');
         }
     }
 
@@ -643,9 +669,148 @@ class RelayApp {
         }
     }
 
-    showQRScanner() {
-        this.showNotification('QR scanning not yet implemented', 'info');
-    }
+	// ========== QR Scanner Functions ==========
+	async showQRScanner() {
+	  const modal = document.getElementById('scannerModal');
+	  const reader = document.getElementById('qr-reader');
+
+	  if (!modal || !reader) return;
+
+	  // Show modal
+	  modal.classList.remove('hidden');
+	  reader.innerHTML = "";
+
+	  // Check library
+	  if (typeof Html5Qrcode === 'undefined') {
+	    reader.innerHTML = `
+	      <div style="padding:2rem;text-align:center;color:#ef4444;">
+		Scanner library not loaded
+	      </div>
+	    `;
+	    return;
+	  }
+
+	  try {
+	    // Stop existing scanner if running
+	    if (this.qrScanner) {
+	      try {
+		await this.qrScanner.stop();
+		await this.qrScanner.clear();
+	      } catch (e) {}
+	    }
+
+	    // Create scanner
+	    this.qrScanner = new Html5Qrcode("qr-reader");
+
+	    // Get cameras (this triggers permission popup)
+	    const devices = await Html5Qrcode.getCameras();
+
+	    if (!devices || devices.length === 0) {
+	      throw new Error("No camera devices found");
+	    }
+
+	    // Prefer back camera if available
+	    let cameraId = devices[0].id;
+	    const backCam = devices.find(d =>
+	      d.label.toLowerCase().includes("back") ||
+	      d.label.toLowerCase().includes("environment")
+	    );
+	    if (backCam) cameraId = backCam.id;
+
+	    await this.qrScanner.start(
+	      cameraId,
+	      {
+		fps: 10,
+		qrbox: { width: 250, height: 250 }
+	      },
+	      (decodedText) => {
+		console.log("✅ QR Scanned:", decodedText);
+		this.handleScannedQR(decodedText);
+		this.hideQRScanner();
+	      },
+	      () => {} // Ignore frame errors
+	    );
+
+	  } catch (err) {
+	    console.error("❌ Scanner error:", err);
+
+	    reader.innerHTML = `
+	      <div style="padding:2rem;text-align:center;color:#ef4444;">
+		<p>Camera access denied or not available</p>
+		<button class="btn btn-secondary" onclick="app.useManualCode()">
+		  Enter Code Manually
+		</button>
+	      </div>
+	    `;
+	  }
+	}
+
+	async hideQRScanner() {
+	  const modal = document.getElementById('scannerModal');
+	  if (modal) modal.classList.add('hidden');
+
+	  if (this.qrScanner) {
+	    try {
+	      await this.qrScanner.stop();
+	      await this.qrScanner.clear();
+	    } catch (e) {
+	      console.warn("Scanner stop error:", e);
+	    }
+	  }
+	}
+
+	handleScannedQR(text) {
+	  console.log('🔍 Processing scanned text:', text);
+	  
+	  // Stop scanner
+	  this.hideQRScanner();
+	  
+	  // Try to extract room code from URL or raw text
+	  let roomCode = text;
+	  
+	  // If it's a URL with room parameter
+	  if (text.includes('#join') || text.includes('?room=')) {
+	    try {
+	      const url = new URL(text);
+	      const hash = url.hash.replace('#', '');
+	      const params = new URLSearchParams(hash);
+	      roomCode = params.get('room') || roomCode;
+	    } catch (e) {
+	      // Not a valid URL, use raw text
+	    }
+	  }
+	  
+	  // Clean room code (remove any extra chars)
+	  roomCode = roomCode.match(/[A-Z0-9-]+/i)?.[0] || roomCode;
+	  
+	  // Fill the form
+	  const roomInput = document.getElementById('roomCode');
+	  const nameInput = document.getElementById('username');
+	  
+	  if (roomInput) {
+	    roomInput.value = roomCode.toUpperCase();
+	    
+	    // Auto-fill name if empty
+	    if (nameInput && !nameInput.value) {
+	      nameInput.value = 'Participant';
+	    }
+	    
+	    // Show success message
+	    this.showNotification(`✅ Room code filled: ${roomCode}`, 'success');
+	    
+	    // Optional: Auto-join after 1 second
+	    setTimeout(() => {
+	      if (nameInput.value && roomInput.value) {
+		this.joinRoom();
+	      }
+	    }, 1000);
+	  }
+	}
+
+	useManualCode() {
+	  this.hideQRScanner();
+	  document.getElementById('roomCode')?.focus();
+	}
 
     // ========== Utilities ==========
 
