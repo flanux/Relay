@@ -1,55 +1,90 @@
-import asyncio
-import websockets
-import json
 import socket
+import webbrowser
+import json
+from aiohttp import web
 
-# --- Helper to find your actual LAN IP ---
+# -----------------------------
+# LAN IP DETECTION
+# -----------------------------
+
 def get_lan_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        # doesn't even have to be reachable
-        s.connect(('8.8.8.8', 1))
-        IP = s.getsockname()[0]
-    except Exception:
-        IP = '127.0.0.1'
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except:
+        return "127.0.0.1"
     finally:
         s.close()
-    return IP
+
+# -----------------------------
+# ROOM STORAGE
+# -----------------------------
 
 rooms = {}
 
-async def handler(websocket):
+# -----------------------------
+# INDEX PAGE
+# -----------------------------
+
+async def index(request):
+    return web.FileResponse("index.html")
+
+# -----------------------------
+# WEBSOCKET SIGNALING
+# -----------------------------
+
+async def websocket_handler(request):
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+
     current_room = None
+
     try:
-        async for message in websocket:
-            data = json.loads(message)
-            if data.get('type') == 'join':
-                current_room = data.get('room')
-                if current_room not in rooms: rooms[current_room] = set()
-                rooms[current_room].add(websocket)
-                print(f"📡 Peer joined room: {current_room}")
+        async for msg in ws:
+            data = json.loads(msg.data)
+
+            if data.get("type") == "join":
+                current_room = data["room"]
+                rooms.setdefault(current_room, set()).add(ws)
                 continue
 
+            # Relay signaling messages only
             if current_room in rooms:
                 for client in rooms[current_room]:
-                    if client != websocket:
-                        await client.send(json.dumps(data))
-    except:
-        pass
+                    if client != ws:
+                        await client.send_json(data)
+
     finally:
-        if current_room in rooms and websocket in rooms[current_room]:
-            rooms[current_room].remove(websocket)
+        if current_room and current_room in rooms:
+            rooms[current_room].discard(ws)
 
-async def main():
-    hostname = get_lan_ip()
-    port = 8000
-    async with websockets.serve(handler, "0.0.0.0", port):
-        print("--- RELAY SERVER STARTED ---")
-        print(f"🏠 Local IP: {hostname}")
-        print(f"📱 On your phone, connect to: http://{hostname}:5500") # Assuming you use Live Server
-        print(f"🔗 Signaling URL: ws://{hostname}:{port}")
-        print("----------------------------")
-        await asyncio.Future()
+    return ws
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# -----------------------------
+# SERVER SETUP
+# -----------------------------
+
+app = web.Application()
+
+app.router.add_get("/", index)
+app.router.add_get("/ws", websocket_handler)
+app.router.add_static("/static/", ".", show_index=False)
+
+# -----------------------------
+# START SERVER
+# -----------------------------
+
+ip = get_lan_ip()
+url = f"http://{ip}:8000"
+
+print("\n🚀 RELAY SERVER READY")
+print("================================")
+print(f"Open this in browser (HOST ONLY):")
+print(url)
+print("================================\n")
+
+# Auto open browser for host
+webbrowser.open(url)
+
+web.run_app(app, host="0.0.0.0", port=8000)

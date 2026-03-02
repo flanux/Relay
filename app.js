@@ -1,5 +1,5 @@
 /**
- * Relay - Main Application (FIXED)
+ * Relay
  * P2P Collaboration Hub for LAN
  */
 class RelayApp {
@@ -26,6 +26,17 @@ class RelayApp {
         // Initialize storage
         this.storage = new SmartStorage();
         this.storage.cleanupOldRooms();
+
+        // Auto-fill room code from URL parameter (for QR code scanning)
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomFromUrl = urlParams.get('room');
+        if (roomFromUrl) {
+            const roomCodeInput = document.getElementById('roomCode');
+            if (roomCodeInput) {
+                roomCodeInput.value = roomFromUrl;
+                console.log('📱 Room code auto-filled from QR scan:', roomFromUrl);
+            }
+        }
 
         // Setup drag and drop
         this.setupDragAndDrop();
@@ -638,9 +649,10 @@ class RelayApp {
             qrWrapper.style.cssText = 'background: white; padding: 2rem; border-radius: 1rem; display: inline-block;';
             container.appendChild(qrWrapper);
 
-            // Generate QR code into the wrapper
+            // Generate QR code into the wrapper with FULL URL
+            const roomUrl = window.location.origin + window.location.pathname + '?room=' + this.roomId;
             new QRCode(qrWrapper, {
-                text: this.roomId,
+                text: roomUrl,  // Full URL instead of just room code
                 width: 256,
                 height: 256,
                 colorDark: "#000000",

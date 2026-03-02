@@ -9,7 +9,8 @@ class P2PManager {
         this.roomId = null;
         this.isHost = false;
         this.socket = null;
-        this.serverUrl = `ws://${serverIp}:8000`; // Matches your Python server
+	const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+	this.serverUrl = `${protocol}//${window.location.host}/ws`;
         
         // --- CALLBACK HOLDERS ---
         this.onMessageCallback = null;
@@ -46,7 +47,7 @@ class P2PManager {
 
     async createRoom() {
         this.isHost = true;
-        this.roomId = "RELAY-" + Math.floor(1000 + Math.random() * 9000);
+        this.roomId = "dock-" + Math.floor(1000 + Math.random() * 9000);
         await this.initSignaling(this.roomId);
         return this.roomId;
     }
