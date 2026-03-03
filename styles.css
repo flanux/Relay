@@ -1278,6 +1278,7 @@ input:checked + .slider:before {
 
     .room-header {
         padding: 1rem;
+        font-size: 0.9rem;
     }
 
     .host-layout,
@@ -1294,32 +1295,117 @@ input:checked + .slider:before {
         flex-direction: column;
     }
 
+    /* Mobile: Bigger slide viewer */
+    .slide-viewer {
+        min-height: 50vh;
+        height: auto;
+    }
+
+    .live-slide {
+        max-height: 50vh;
+        object-fit: contain;
+    }
+
+    /* Mobile: Bigger slide controls */
+    .slide-controls {
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .slide-controls .btn {
+        padding: 1rem;
+        font-size: 1rem;
+    }
+
+    .auto-save-toggle {
+        gap: 0.75rem;
+        font-size: 1rem;
+    }
+
+    .auto-save-toggle small {
+        font-size: 0.9rem;
+    }
+
     /* Mobile: Make gallery and tools collapsible */
     .gallery-section,
     .tools-section {
-        max-height: 60px;
+        max-height: 50px;
         overflow: hidden;
         transition: max-height 0.3s ease;
     }
 
+    .gallery-section h4,
+    .tools-section h4 {
+        font-size: 1.1rem;
+        padding: 0.75rem;
+        margin: 0;
+        cursor: pointer;
+        user-select: none;
+        background: var(--surface);
+        border-radius: 0.5rem;
+    }
+
     .gallery-section.expanded,
     .tools-section.expanded {
-        max-height: 400px;
+        max-height: 600px;
     }
 
     .gallery-section .slide-gallery,
     .gallery-section .btn-full,
+    .tools-section .tabs,
     .tools-section .tab-content {
         display: none;
     }
 
     .gallery-section.expanded .slide-gallery,
     .gallery-section.expanded .btn-full,
+    .tools-section.expanded .tabs,
     .tools-section.expanded .tab-content {
         display: block;
     }
 
     .tools-section.expanded .tab-content.active {
         display: block;
+    }
+
+    /* Mobile: Bigger tabs */
+    .tab-btn {
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+    }
+
+    /* Mobile: Bigger buttons */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    .btn-small {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    /* Mobile: Better chat */
+    .chat-box {
+        min-height: 150px;
+        font-size: 1rem;
+    }
+
+    .chat-input input {
+        padding: 0.75rem;
+        font-size: 1rem;
+    }
+
+    /* Mobile: Better file list */
+    .file-list {
+        font-size: 1rem;
+    }
+
+    .file-name {
+        font-size: 1rem;
+    }
+
+    .file-size {
+        font-size: 0.85rem;
     }
 }
