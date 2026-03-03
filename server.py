@@ -37,28 +37,57 @@ async def index(request):
 async def websocket_handler(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
-
     current_room = None
-
+    
     try:
         async for msg in ws:
             data = json.loads(msg.data)
-
+            
             if data.get("type") == "join":
                 current_room = data["room"]
-                rooms.setdefault(current_room, set()).add(ws)
+                peer_id = data.get("peerId")  # Client sends this
+                
+                # Store room + peer mapping
+                rooms.setdefault(current_room, {}).setdefault(peer_id, ws)
+                
+                # 🔥 Notify ALL existing peers: "new peer joined"
+                for existing_id, existing_ws in rooms[current_room].items():
+                    if existing_id != peer_id:
+                        await existing_ws.send_json({
+                            "type": "peer_joined",
+                            "peerId": peer_id
+                        })
+                
+                # 🔥 Notify NEW peer: "here are existing peers"
+                for existing_id in rooms[current_room]:
+                    if existing_id != peer_id:
+                        await ws.send_json({
+                            "type": "peer_joined", 
+                            "peerId": existing_id
+                        })
                 continue
-
-            # Relay signaling messages only
-            if current_room in rooms:
-                for client in rooms[current_room]:
-                    if client != ws:
-                        await client.send_json(data)
-
+            
+            # Relay other signaling messages
+            if current_room and current_room in rooms:
+                target = data.get("target")
+                if target and target in rooms[current_room]:
+                    await rooms[current_room][target].send_json(data)
+                else:
+                    # Broadcast to all in room (for mesh)
+                    for peer_id, peer_ws in rooms[current_room].items():
+                        if peer_ws != ws:
+                            await peer_ws.send_json(data)
+                            
     finally:
+        # Cleanup on disconnect
         if current_room and current_room in rooms:
-            rooms[current_room].discard(ws)
-
+            for peer_id, peer_ws in list(rooms[current_room].items()):
+                if peer_ws == ws:
+                    del rooms[current_room][peer_id]
+                    break
+            if not rooms[current_room]:
+                del rooms[current_room]
+    
     return ws
 
 # -----------------------------
