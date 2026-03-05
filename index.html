@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Relay - LAN Collaboration Hub</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/styles.css?v=3">
     <meta name="description" content="Zero-setup P2P collaboration tool for local networks">
 </head>
 <body>
@@ -80,6 +80,16 @@
                     <span class="status online" id="connectionStatus">● Live</span>
                 </div>
                 <div class="header-actions">
+                    <button class="btn btn-small btn-secondary" onclick="document.getElementById('pptxFileInput')?.click()" title="Upload Presentation">
+                        <span>📊</span> Upload Slides
+                    </button>
+                    <input 
+                        type="file" 
+                        id="pptxFileInput" 
+                        accept=".pdf,.pptx,.ppt,image/*" 
+                        multiple
+                        style="display: none;"
+                    />
                     <button class="btn btn-small" onclick="app.showQRCode()" title="Show QR Code">
                         <span>📱</span> QR
                     </button>
@@ -334,6 +344,8 @@
     <script src="/static/modules/slides.js"></script>
     <script src="/static/modules/polls.js"></script>
     <script src="/static/modules/notes.js"></script>
+    <script src="/static/modules/pptx.js"></script>
+    <script src="/static/modules/overlay.js"></script>
     <script src="/static/app.js"></script>
 </body>
 </html>

@@ -8,6 +8,8 @@ class RelayApp {
         this.slideSync = null;
         this.pollManager = null;
         this.notesManager = null;
+        this.pptxRenderer = null;
+        this.overlayControls = null;
         
         this.roomId = null;
         this.username = '';
@@ -60,6 +62,22 @@ class RelayApp {
         this.notesManager = new NotesManager(this.p2p, this.storage);
         this.notesManager.init(true); // true = host mode
         
+        // ✅ NEW: Initialize PowerPoint and Overlay modules
+        this.pptxRenderer = new PPTXRenderer(this.p2p, this.storage, this.slideSync);
+        this.pptxRenderer.init();
+        
+        // Initialize overlay controls (will show when screen sharing starts)
+        const previewContainer = document.querySelector('.video-preview');
+        if (previewContainer) {
+            this.overlayControls = new OverlayControls(previewContainer, {
+                onCreatePoll: () => this.switchTab('polls'),
+                onToggleNotes: () => this.toggleNotes(),
+                onShareFile: () => document.getElementById('fileInput')?.click(),
+                onNextSlide: () => this.pptxRenderer?.nextSlide()
+            });
+            this.overlayControls.init();
+        }
+        
         this.setupP2PCallbacks();
         this.showView("host-room");
         document.getElementById("displayRoomCode").textContent = this.roomId;
@@ -84,6 +102,10 @@ class RelayApp {
         this.pollManager = new PollManager(this.p2p);
         this.notesManager = new NotesManager(this.p2p, this.storage);
         this.notesManager.init(false); // false = participant mode
+        
+        // ✅ NEW: Initialize PowerPoint renderer (to receive slides)
+        this.pptxRenderer = new PPTXRenderer(this.p2p, this.storage, this.slideSync);
+        // Participants don't need UI init, just need to receive slides
         
         this.setupP2PCallbacks();
         this.showView("participant-room");
@@ -166,6 +188,25 @@ class RelayApp {
             case 'file_metadata':
                 this.receiveFileMetadata(data);
                 break;
+            
+            // ✅ NEW: PowerPoint presentation messages
+            case 'pptx_loaded':
+                if (this.pptxRenderer) {
+                    this.pptxRenderer.handleSlidesReceived(data);
+                }
+                break;
+            
+            case 'slide_advance':
+                if (this.pptxRenderer) {
+                    this.pptxRenderer.handleSlideAdvance(data);
+                }
+                break;
+            
+            case 'presentation_ended':
+                if (this.pptxRenderer) {
+                    this.pptxRenderer.handlePresentationEnded();
+                }
+                break;
         }
     }
 
@@ -242,27 +283,67 @@ class RelayApp {
     // ========== Screen Sharing ==========
     async toggleScreenShare() {
         const btn = document.getElementById('shareBtn');
+        
+        console.log('🎬 toggleScreenShare called');
+        console.log('slideSync exists?', !!this.slideSync);
+        console.log('slideSync.isSharing?', this.slideSync?.isSharing);
+        
         if (!this.slideSync) {
+            console.error('❌ SlideSync not initialized!');
             this.showNotification('Screen sharing not initialized', 'error');
             return;
         }
+        
         if (!this.slideSync.isSharing) {
             try {
+                console.log('🚀 Starting screen share...');
                 await this.slideSync.startScreenShare();
+                
+                console.log('✅ Screen share started successfully!');
                 btn.textContent = 'Stop Sharing';
                 btn.classList.add('btn-danger');
                 btn.classList.remove('btn-primary');
                 this.showNotification('Screen sharing started', 'success');
+                
+                // Show overlay controls when screen sharing starts
+                if (this.overlayControls) {
+                    this.overlayControls.show();
+                }
             } catch (error) {
-                console.error(error);
-                this.showNotification('Failed to start screen share', 'error');
+                console.error('💥 Screen share failed!');
+                console.error('Error type:', error.constructor.name);
+                console.error('Error name:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Full error:', error);
+                
+                // Show detailed error to user
+                let errorMsg = 'Failed to start screen share';
+                if (error.message && error.message.includes('localhost')) {
+                    errorMsg = '⚠️ Screen sharing requires HTTPS or localhost! Change URL from 10.x.x.x to localhost:8000';
+                } else if (error.name === 'NotAllowedError') {
+                    errorMsg = 'Permission denied - please allow screen sharing';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg = 'No screen available to share';
+                } else if (error.name === 'NotSupportedError') {
+                    errorMsg = 'Screen sharing not supported in this browser';
+                } else if (error.message) {
+                    errorMsg = error.message;
+                }
+                
+                this.showNotification(errorMsg, 'error');
             }
         } else {
+            console.log('🛑 Stopping screen share...');
             this.slideSync.stopScreenShare();
             btn.textContent = 'Start Sharing';
             btn.classList.remove('btn-danger');
             btn.classList.add('btn-primary');
             this.showNotification('Screen sharing stopped', 'info');
+            
+            // Hide overlay controls when screen sharing stops
+            if (this.overlayControls) {
+                this.overlayControls.hide();
+            }
         }
     }
 

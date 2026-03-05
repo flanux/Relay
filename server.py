@@ -105,15 +105,23 @@ app.router.add_static("/static/", ".", show_index=False)
 # -----------------------------
 
 ip = get_lan_ip()
-url = f"http://{ip}:8000"
+localhost_url = "http://localhost:8000"
+lan_url = f"http://{ip}:8000"
 
 print("\n🚀 RELAY SERVER READY")
-print("================================")
-print(f"Open this in browser (HOST ONLY):")
-print(url)
-print("================================\n")
+print("=" * 60)
+print(f"✅ HOST (Teacher): Open browser at:")
+print(f"   {localhost_url}")
+print(f"")
+print(f"📱 PARTICIPANTS (Students): Connect via QR or use:")
+print(f"   {lan_url}")
+print("=" * 60)
+print("")
+print("💡 Host MUST use localhost for screen sharing to work!")
+print("💡 Participants can use the IP address (it's fine for them)")
+print("")
 
-# Auto open browser for host
-webbrowser.open(url)
+# Auto open browser for host with localhost
+webbrowser.open(localhost_url)
 
 web.run_app(app, host="0.0.0.0", port=8000)

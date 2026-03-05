@@ -25,37 +25,83 @@ class SlideSync {
 
     async startScreenShare() {
         try {
+            console.log('🎬 Requesting screen share...');
+            
+            // Check if mediaDevices is supported
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                throw new Error('Screen sharing not supported. Please use HTTPS or localhost (not IP address like 10.x.x.x)');
+            }
+            
+            // Most basic call possible - no constraints
             this.stream = await navigator.mediaDevices.getDisplayMedia({
-                video: {
-                    cursor: 'never',
-                    displaySurface: 'monitor'
-                },
-                audio: false
+                video: true
             });
 
-            // Setup preview
+            console.log('✅ Got stream:', this.stream);
+
+            // Get elements
             this.previewVideo = document.getElementById('previewVideo');
             this.previewCanvas = document.getElementById('previewCanvas');
+            const placeholder = document.getElementById('previewPlaceholder');
             
-            if (this.previewVideo) {
-                this.previewVideo.srcObject = this.stream;
-                this.previewVideo.classList.add('active');
-                document.getElementById('previewPlaceholder')?.classList.add('hidden');
+            console.log('📺 Elements:', {
+                video: this.previewVideo,
+                canvas: this.previewCanvas,
+                placeholder: placeholder
+            });
+            
+            if (!this.previewVideo) {
+                console.error('❌ Preview video element not found!');
+                throw new Error('Preview video element not found');
+            }
+            
+            // Hide placeholder
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+            
+            // Show and setup video
+            this.previewVideo.srcObject = this.stream;
+            this.previewVideo.style.display = 'block';
+            this.previewVideo.classList.add('active');
+            
+            console.log('🎥 Video element setup complete');
+            
+            // Play the video
+            try {
+                await this.previewVideo.play();
+                console.log('▶️ Video playing');
+            } catch (playError) {
+                console.warn('Play error (might be ok):', playError);
             }
 
-            // Start capturing and broadcasting frames
+            // Start capturing
             this.isSharing = true;
             this.startCapture();
+            
+            console.log('📸 Capture started');
 
             // Handle stream end
             this.stream.getVideoTracks()[0].addEventListener('ended', () => {
+                console.log('🛑 Stream ended');
                 this.stopScreenShare();
             });
 
-            console.log('✅ Screen sharing started');
+            console.log('✅✅✅ Screen sharing fully started!');
             return true;
+            
         } catch (error) {
-            console.error('Screen share error:', error);
+            console.error('💥 Screen share error:', error);
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            this.isSharing = false;
+            
+            // Clean up on error
+            if (this.previewVideo) {
+                this.previewVideo.srcObject = null;
+                this.previewVideo.classList.remove('active');
+            }
+            
             throw error;
         }
     }
