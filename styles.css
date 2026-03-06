@@ -782,6 +782,104 @@ textarea {
     background: var(--border);
 }
 
+/* ========== SOURCE TABS (Multi-Source Switching) ========== */
+.source-tabs {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.source-tabs::-webkit-scrollbar {
+    height: 4px;
+}
+
+.source-tabs::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+}
+
+.source-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.source-tab:hover {
+    background: var(--bg-lighter);
+    border-color: var(--primary);
+    color: var(--text);
+}
+
+.source-tab.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    font-weight: 600;
+}
+
+.source-tab .tab-icon {
+    font-size: 1rem;
+}
+
+.source-tab .tab-close {
+    margin-left: 0.5rem;
+    padding: 0 0.25rem;
+    font-size: 1.2rem;
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+.source-tab .tab-close:hover {
+    opacity: 1;
+}
+
+.source-tab .tab-shortcut {
+    margin-left: 0.5rem;
+    font-size: 0.7rem;
+    opacity: 0.7;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.25rem;
+    z-index: 1001;
+    position: relative;
+}
+
+/* Mobile: Hide tabs, show indicator instead */
+@media (max-width: 768px) {
+    .source-tabs {
+        display: none;
+    }
+    
+    .mobile-source-indicator {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.85rem;
+        color: white;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+}
+
 /* ========== LIVE BADGE ========== */
 .live-badge {
     position: absolute;

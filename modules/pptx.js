@@ -51,74 +51,145 @@ class PPTXRenderer {
         }
 
         try {
-            // Process each file as a slide
             const fileArray = Array.from(files);
-            
-            // Sort files by name to maintain order
             fileArray.sort((a, b) => a.name.localeCompare(b.name));
 
-            this.slides = []; // Clear existing slides
-            let slideIndex = 0;
+            // Separate PDFs and images
+            const pdfFiles = fileArray.filter(f => 
+                f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
+            );
+            const imageFiles = fileArray.filter(f => 
+                f.type.startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(f.name)
+            );
 
-            for (let i = 0; i < fileArray.length; i++) {
-                const file = fileArray[i];
-                
-                // Validate file type
-                if (!this.isValidSlideFile(file)) {
-                    console.warn(`Skipping invalid file: ${file.name}`);
-                    continue;
-                }
-
-                // Convert file to data URL(s)
-                const imageData = await this.fileToDataURL(file);
-                
-                // Handle PDF (returns array) vs images (returns single)
-                if (Array.isArray(imageData)) {
-                    // PDF returned multiple pages
-                    for (let pageData of imageData) {
-                        const compressedData = await this.compressImage(pageData, 0.7);
-                        this.slides.push({
-                            index: slideIndex++,
-                            imageData: compressedData,
-                            title: `${file.name} - Page ${slideIndex}`
-                        });
-                    }
-                } else {
-                    // Single image file
-                    const compressedData = await this.compressImage(imageData, 0.7);
-                    this.slides.push({
-                        index: slideIndex++,
-                        imageData: compressedData,
-                        title: file.name.replace(/\.[^/.]+$/, '') // Remove extension
-                    });
-                }
+            // Process PDFs - each gets own tab
+            for (let pdfFile of pdfFiles) {
+                await this.loadPDF(pdfFile);
             }
 
-            if (this.slides.length === 0) {
-                if (window.app) {
-                    window.app.showNotification('❌ No valid slides found', 'error');
-                }
-                return;
+            // Process images - all in ONE tab
+            if (imageFiles.length > 0) {
+                await this.loadImages(imageFiles);
             }
-
-            if (window.app) {
-                window.app.showNotification(`✅ Loaded ${this.slides.length} slide(s)`, 'success');
-            }
-            
-            // Broadcast to participants
-            this.broadcastSlides();
-
-            // Show presentation controls
-            this.showPresentationControls();
-
-            // Auto-start presentation mode
-            this.startPresentation();
 
         } catch (error) {
             console.error('Error processing files:', error);
             if (window.app) {
                 window.app.showNotification('❌ ' + error.message, 'error');
             }
+        }
+    }
+
+    async loadPDF(file) {
+        console.log(`📄 Loading PDF: ${file.name}`);
+        
+        // Load PDF.js if not loaded
+        if (!window.pdfjsLib) {
+            await this.loadPDFJS();
+        }
+
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        
+        // Create presentation with unique ID
+        const presId = 'pdf-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        
+        if (!window.app.presentationManager) {
+            console.error('PresentationManager not initialized!');
+            return;
+        }
+
+        window.app.presentationManager.create(presId, 'pdf', {
+            title: file.name.substring(0, 25),
+            icon: '📄',
+            fileName: file.name
+        });
+
+        // Render all pages with AWAIT (prevents race condition!)
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const viewport = page.getViewport({ scale: 1.3 }); // Limit scale to save memory
+            
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            
+            // CRITICAL: await the render!
+            await page.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+            
+            // Convert to data URL
+            const imageData = canvas.toDataURL('image/jpeg', 0.7);
+            
+            // Add to presentation
+            window.app.presentationManager.addSlide(presId, imageData);
+        }
+
+        console.log(`✅ PDF loaded: ${file.name} (${pdf.numPages} pages)`);
+        
+        // Register as source
+        if (window.app.sourceManager) {
+            window.app.sourceManager.registerSource(presId, 'pdf', {
+                presentationId: presId
+            }, {
+                title: file.name.substring(0, 25),
+                icon: '📄'
+            });
+        }
+
+        if (window.app) {
+            window.app.showNotification(`✅ ${file.name} (${pdf.numPages} pages)`, 'success');
+        }
+    }
+
+    async loadImages(files) {
+        console.log(`🖼️ Loading ${files.length} images`);
+        
+        // Remove old image gallery
+        const oldImagesId = 'images-1';
+        if (window.app.presentationManager) {
+            window.app.presentationManager.remove(oldImagesId);
+        }
+        if (window.app.sourceManager) {
+            window.app.sourceManager.removeSource(oldImagesId);
+        }
+
+        // Create new presentation
+        if (!window.app.presentationManager) {
+            console.error('PresentationManager not initialized!');
+            return;
+        }
+
+        window.app.presentationManager.create(oldImagesId, 'images', {
+            title: `Images (${files.length})`,
+            icon: '🖼️'
+        });
+
+        // Load all images
+        for (let file of files) {
+            const imageData = await this.fileToDataURL(file);
+            const compressedData = await this.compressImage(imageData, 0.7);
+            
+            window.app.presentationManager.addSlide(oldImagesId, compressedData);
+        }
+
+        console.log(`✅ Images loaded: ${files.length}`);
+
+        // Register as source
+        if (window.app.sourceManager) {
+            window.app.sourceManager.registerSource(oldImagesId, 'images', {
+                presentationId: oldImagesId
+            }, {
+                title: `Images (${files.length})`,
+                icon: '🖼️'
+            });
+        }
+
+        if (window.app) {
+            window.app.showNotification(`✅ Loaded ${files.length} image(s)`, 'success');
         }
     }
 
@@ -310,7 +381,7 @@ class PPTXRenderer {
         
         controls.innerHTML = `
             <span id="slideCounter" style="font-size: 0.9rem; color: #94a3b8; font-weight: 600;">1 / ${this.slides.length}</span>
-            <button class="btn btn-danger btn-small" onclick="pptxRenderer.endPresentation()">
+            <button class="btn btn-danger btn-small" onclick="window.app.pptxRenderer.endPresentation()">
                 Stop Presentation
             </button>
         `;
@@ -365,7 +436,11 @@ class PPTXRenderer {
             leftArrow.style.color = 'rgba(255, 255, 255, 0.7)';
             leftArrow.style.background = 'linear-gradient(to right, rgba(0, 0, 0, 0.5), transparent)';
         };
-        leftArrow.onclick = () => this.previousSlide();
+        leftArrow.onclick = () => {
+            if (window.app) {
+                window.app.navigateActiveSource(-1); // Previous
+            }
+        };
 
         // Right arrow
         const rightArrow = document.createElement('div');
@@ -397,7 +472,11 @@ class PPTXRenderer {
             rightArrow.style.color = 'rgba(255, 255, 255, 0.7)';
             rightArrow.style.background = 'linear-gradient(to left, rgba(0, 0, 0, 0.5), transparent)';
         };
-        rightArrow.onclick = () => this.nextSlide();
+        rightArrow.onclick = () => {
+            if (window.app) {
+                window.app.navigateActiveSource(1); // Next
+            }
+        };
 
         previewContainer.appendChild(leftArrow);
         previewContainer.appendChild(rightArrow);
@@ -443,9 +522,10 @@ class PPTXRenderer {
         this.currentSlideIndex = index;
         const slide = this.slides[index];
 
-        // Check if screen sharing is active - DON'T interfere!
-        if (this.slideSync && this.slideSync.isSharing) {
-            console.log('Screen sharing is active, not rendering slide over it');
+        // Check if PPTX is the active source before rendering
+        const activeSource = window.app?.sourceManager?.getActiveSource();
+        if (activeSource && activeSource.type !== 'pptx') {
+            console.log(`Active source is ${activeSource.type}, not rendering PPTX slide`);
             return;
         }
 
@@ -454,15 +534,13 @@ class PPTXRenderer {
         const previewPlaceholder = document.getElementById('previewPlaceholder');
         const previewCanvas = document.getElementById('previewCanvas');
         
-        // ONLY hide video if we're actually in presentation mode
-        if (this.isPresentationMode) {
-            if (previewVideo) {
-                previewVideo.classList.remove('active');
-                previewVideo.style.display = 'none';
-            }
-            if (previewCanvas) {
-                previewCanvas.style.display = 'none';
-            }
+        // Hide video/canvas when showing slides
+        if (previewVideo) {
+            previewVideo.classList.remove('active');
+            previewVideo.style.display = 'none';
+        }
+        if (previewCanvas) {
+            previewCanvas.style.display = 'none';
         }
         
         if (previewPlaceholder) {
@@ -522,6 +600,11 @@ class PPTXRenderer {
 
     endPresentation() {
         this.isPresentationMode = false;
+        
+        // ✅ NEW: Remove PPTX source
+        if (window.app && window.app.sourceManager) {
+            window.app.sourceManager.removeSource('pptx-1');
+        }
         
         // Restore preview elements properly
         const previewPlaceholder = document.getElementById('previewPlaceholder');

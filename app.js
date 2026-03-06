@@ -10,6 +10,7 @@ class RelayApp {
         this.notesManager = null;
         this.pptxRenderer = null;
         this.overlayControls = null;
+        this.sourceManager = null;
         
         this.roomId = null;
         this.username = '';
@@ -50,6 +51,238 @@ class RelayApp {
         console.log('✅ Relay ready');
     }
 
+    // ========== SOURCE MANAGEMENT (Multi-Source Switching) ==========
+    
+    initializeSourceTabs() {
+        if (!this.sourceManager) return;
+        
+        const tabBar = document.getElementById('sourceTabBar');
+        if (!tabBar) return;
+        
+        console.log('🎯 Initializing source tabs...');
+        
+        // Listen to source manager events
+        this.sourceManager.on('sourceRegistered', (source) => {
+            this.addSourceTab(source);
+            // Show tab bar when we have sources
+            tabBar.style.display = 'flex';
+        });
+        
+        this.sourceManager.on('sourceActivated', (source, previousId) => {
+            this.updateActiveTab(source.id);
+            this.renderActiveSource(source);
+        });
+        
+        this.sourceManager.on('sourceRemoved', (source) => {
+            this.removeSourceTab(source.id);
+            // Hide tab bar if no sources left
+            if (this.sourceManager.getAllSources().length === 0) {
+                tabBar.style.display = 'none';
+            }
+        });
+        
+        // Keyboard shortcuts (Alt+1, Alt+2, etc.)
+        document.addEventListener('keydown', (e) => {
+            if (e.altKey && e.key >= '1' && e.key <= '9') {
+                e.preventDefault();
+                const index = parseInt(e.key) - 1;
+                this.sourceManager.activateSourceByIndex(index);
+            }
+        });
+        
+        console.log('✅ Source tabs initialized');
+    }
+    
+    addSourceTab(source) {
+        const tabBar = document.getElementById('sourceTabBar');
+        console.log('🔍 addSourceTab called:', {
+            sourceId: source.id,
+            sourceType: source.type,
+            tabBar: !!tabBar
+        });
+        
+        if (!tabBar) {
+            console.error('❌ Tab bar not found!');
+            return;
+        }
+        
+        // Check if tab already exists
+        const existingTab = document.querySelector(`[data-source-id="${source.id}"]`);
+        if (existingTab) {
+            console.log(`⚠️ Tab already exists for ${source.id}, updating title`);
+            // Update title instead of skipping
+            const titleEl = existingTab.querySelector('.tab-title');
+            if (titleEl) {
+                titleEl.textContent = source.metadata.title;
+            }
+            return;
+        }
+        
+        const tab = document.createElement('button');
+        tab.className = 'source-tab';
+        tab.dataset.sourceId = source.id;
+        
+        const index = this.sourceManager.getAllSources().findIndex(s => s.id === source.id);
+        const shortcut = index < 9 ? `Alt+${index + 1}` : '';
+        
+        tab.innerHTML = `
+            <span class="tab-icon">${source.metadata.icon}</span>
+            <span class="tab-title">${source.metadata.title}</span>
+            ${shortcut ? `<span class="tab-shortcut">${shortcut}</span>` : ''}
+            <span class="tab-close" onclick="event.stopPropagation(); app.removeSource('${source.id}')">×</span>
+        `;
+        
+        tab.onclick = () => {
+            console.log(`🖱️ Tab clicked: ${source.id}`);
+            this.sourceManager.activateSource(source.id);
+        };
+        
+        tabBar.appendChild(tab);
+        console.log(`✅ Tab added: ${source.id}, total tabs: ${tabBar.children.length}`);
+    }
+    
+    removeSourceTab(sourceId) {
+        const tab = document.querySelector(`[data-source-id="${sourceId}"]`);
+        if (tab) {
+            tab.remove();
+            console.log(`➖ Tab removed: ${sourceId}`);
+        }
+    }
+    
+    updateActiveTab(sourceId) {
+        // Remove active class from all tabs
+        document.querySelectorAll('.source-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Add active class to current tab
+        const activeTab = document.querySelector(`[data-source-id="${sourceId}"]`);
+        if (activeTab) {
+            activeTab.classList.add('active');
+        }
+    }
+    
+    renderActiveSource(source) {
+        console.log(`🎨 Rendering source: ${source.id} (${source.type})`);
+        
+        const previewVideo = document.getElementById('previewVideo');
+        const previewPlaceholder = document.getElementById('previewPlaceholder');
+        const leftArrow = document.getElementById('navArrowLeft');
+        const rightArrow = document.getElementById('navArrowRight');
+        
+        // FIRST: Hide everything
+        if (previewVideo) {
+            previewVideo.style.display = 'none';
+            previewVideo.classList.remove('active');
+        }
+        
+        if (previewPlaceholder) {
+            previewPlaceholder.style.display = 'none';
+            previewPlaceholder.classList.add('hidden');
+        }
+        
+        // Hide navigation arrows by default
+        if (leftArrow) leftArrow.style.display = 'none';
+        if (rightArrow) rightArrow.style.display = 'none';
+        
+        // THEN: Show the active source
+        switch (source.type) {
+            case 'screen':
+                // Show screen share video
+                console.log('📺 Showing screen share');
+                if (previewVideo && this.slideSync && this.slideSync.isSharing) {
+                    previewVideo.style.display = 'block';
+                    previewVideo.classList.add('active');
+                    if (this.slideSync.stream) {
+                        previewVideo.srcObject = this.slideSync.stream;
+                    }
+                }
+                break;
+                
+            case 'pdf':
+            case 'images':
+                // Use PresentationManager!
+                console.log(`📊 Showing ${source.type}: ${source.metadata.title}`);
+                
+                const presId = source.data.presentationId;
+                if (!presId || !this.presentationManager) {
+                    console.error('No presentation ID or manager!');
+                    return;
+                }
+                
+                // Set this as active presentation
+                this.presentationManager.setActive(presId);
+                
+                // Get current slide
+                const slide = this.presentationManager.getCurrentSlide();
+                if (!slide) {
+                    console.error('No current slide!');
+                    return;
+                }
+                
+                // Render the slide
+                if (previewPlaceholder) {
+                    previewPlaceholder.style.display = 'flex';
+                    previewPlaceholder.classList.remove('hidden');
+                    previewPlaceholder.innerHTML = `
+                        <img src="${slide.data}" style="width: 100%; height: 100%; object-fit: contain;">
+                    `;
+                }
+                
+                // Show navigation arrows
+                if (leftArrow) leftArrow.style.display = 'flex';
+                if (rightArrow) rightArrow.style.display = 'flex';
+                
+                const pres = this.presentationManager.getActive();
+                console.log(`✅ Rendered slide ${pres.current + 1}/${pres.slides.length}`);
+                break;
+                
+            default:
+                console.warn(`Unknown source type: ${source.type}`);
+        }
+    }
+    
+    removeSource(sourceId) {
+        if (this.sourceManager) {
+            this.sourceManager.removeSource(sourceId);
+        }
+    }
+
+    shareCurrentToParticipants() {
+        const activeSource = this.sourceManager?.getActiveSource();
+        if (!activeSource) {
+            this.showNotification('No active source to share', 'error');
+            return;
+        }
+
+        // Force activate the current source (triggers broadcast)
+        this.sourceManager.activateSource(activeSource.id);
+        this.showNotification(`📤 Sharing ${activeSource.metadata.title} to participants`, 'success');
+    }
+
+    navigateActiveSource(direction) {
+        const activeSource = this.sourceManager?.getActiveSource();
+        if (!activeSource) return;
+
+        // Only navigate for pdf/images, not screen
+        if (activeSource.type === 'screen') return;
+
+        if (!this.presentationManager) return;
+
+        // Navigate using PresentationManager
+        const moved = direction > 0 
+            ? this.presentationManager.next() 
+            : this.presentationManager.prev();
+
+        if (moved) {
+            // Re-render
+            this.renderActiveSource(activeSource);
+            
+            const pres = this.presentationManager.getActive();
+            console.log(`📄 Navigated to slide ${pres.current + 1}/${pres.slides.length}`);
+        }
+    }
+
     // ========== Room Management ==========
     async createRoom() {
         this.roomId = "room-" + Math.random().toString(36).substring(2,8);
@@ -62,6 +295,12 @@ class RelayApp {
         this.notesManager = new NotesManager(this.p2p, this.storage);
         this.notesManager.init(true); // true = host mode
         
+        // ✅ NEW: Initialize PresentationManager (proper state management)
+        this.presentationManager = new PresentationManager();
+        
+        // ✅ NEW: Initialize SourceManager for multi-source switching
+        this.sourceManager = new SourceManager(this.p2p);
+        
         // ✅ NEW: Initialize PowerPoint and Overlay modules
         this.pptxRenderer = new PPTXRenderer(this.p2p, this.storage, this.slideSync);
         this.pptxRenderer.init();
@@ -73,7 +312,7 @@ class RelayApp {
                 onCreatePoll: () => this.switchTab('polls'),
                 onToggleNotes: () => this.toggleNotes(),
                 onShareFile: () => document.getElementById('fileInput')?.click(),
-                onNextSlide: () => this.pptxRenderer?.nextSlide()
+                onNextSlide: () => this.navigateActiveSource(1)
             });
             this.overlayControls.init();
         }
@@ -81,6 +320,9 @@ class RelayApp {
         this.setupP2PCallbacks();
         this.showView("host-room");
         document.getElementById("displayRoomCode").textContent = this.roomId;
+        
+        // ✅ NEW: Initialize source tab system
+        this.initializeSourceTabs();
     }
 
     async joinRoom() {
@@ -102,6 +344,9 @@ class RelayApp {
         this.pollManager = new PollManager(this.p2p);
         this.notesManager = new NotesManager(this.p2p, this.storage);
         this.notesManager.init(false); // false = participant mode
+        
+        // ✅ NEW: Initialize SourceManager for participants (to receive source switches)
+        this.sourceManager = new SourceManager(this.p2p);
         
         // ✅ NEW: Initialize PowerPoint renderer (to receive slides)
         this.pptxRenderer = new PPTXRenderer(this.p2p, this.storage, this.slideSync);
@@ -207,6 +452,29 @@ class RelayApp {
                     this.pptxRenderer.handlePresentationEnded();
                 }
                 break;
+            
+            // ✅ NEW: Source switching messages
+            case 'source_registered':
+                if (this.sourceManager) {
+                    console.log('📥 Participant: Source registered from host');
+                    // Participant just needs to know source exists
+                }
+                break;
+            
+            case 'source_activated':
+                if (this.sourceManager) {
+                    console.log('📥 Participant: Source activated -', data.sourceId);
+                    // Participant needs to render this source
+                    const source = { id: data.sourceId, type: data.sourceType, metadata: data.metadata };
+                    this.renderActiveSource(source);
+                }
+                break;
+            
+            case 'source_removed':
+                if (this.sourceManager) {
+                    console.log('📥 Participant: Source removed -', data.sourceId);
+                }
+                break;
         }
     }
 
@@ -305,6 +573,17 @@ class RelayApp {
                 btn.classList.remove('btn-primary');
                 this.showNotification('Screen sharing started', 'success');
                 
+                // ✅ NEW: Register screen share as a source
+                if (this.sourceManager) {
+                    this.sourceManager.registerSource('screen-1', 'screen', {
+                        slideSync: this.slideSync,
+                        stream: this.slideSync.stream
+                    }, {
+                        title: 'Screen Share',
+                        icon: '🖥️'
+                    });
+                }
+                
                 // Show overlay controls when screen sharing starts
                 if (this.overlayControls) {
                     this.overlayControls.show();
@@ -339,6 +618,11 @@ class RelayApp {
             btn.classList.remove('btn-danger');
             btn.classList.add('btn-primary');
             this.showNotification('Screen sharing stopped', 'info');
+            
+            // ✅ NEW: Remove screen share source
+            if (this.sourceManager) {
+                this.sourceManager.removeSource('screen-1');
+            }
             
             // Hide overlay controls when screen sharing stops
             if (this.overlayControls) {
@@ -699,8 +983,17 @@ class RelayApp {
         if (!this.roomId) return;
         try {
             await navigator.clipboard.writeText(this.roomId);
-            this.showNotification('Code copied!', 'success');
-        } catch (e) { this.showNotification('Failed to copy', 'error'); }
+            this.showNotification('✅ Code copied!', 'success');
+        } catch (e) {
+            // Fallback: Create temp input and copy
+            const temp = document.createElement('input');
+            temp.value = this.roomId;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            this.showNotification('✅ Code copied!', 'success');
+        }
     }
 
     showView(viewId) {

@@ -90,6 +90,9 @@
                         multiple
                         style="display: none;"
                     />
+                    <button class="btn btn-small btn-primary" onclick="app.shareCurrentToParticipants()" title="Share what's on screen to participants">
+                        <span>📤</span> Share Current
+                    </button>
                     <button class="btn btn-small" onclick="app.showQRCode()" title="Show QR Code">
                         <span>📱</span> QR
                     </button>
@@ -111,6 +114,11 @@
                             </button>
                         </div>
                         <p class="hint">Share your screen so participants can follow along and capture slides</p>
+
+                        <!-- NEW: Source Tab Bar -->
+                        <div id="sourceTabBar" class="source-tabs" style="display: none;">
+                            <!-- Tabs will be added dynamically -->
+                        </div>
 
                         <div class="preview-container" id="hostPreview">
                             <div class="placeholder" id="previewPlaceholder">
@@ -341,11 +349,13 @@
     <script src="/static/lib/html5-qrcode.min.js"></script>
     <script src="/static/modules/storage.js"></script>
     <script src="/static/modules/webrtc.js"></script>
+    <script src="/static/modules/presentation-manager.js"></script>
     <script src="/static/modules/slides.js"></script>
     <script src="/static/modules/polls.js"></script>
     <script src="/static/modules/notes.js"></script>
     <script src="/static/modules/pptx.js"></script>
     <script src="/static/modules/overlay.js"></script>
+    <script src="/static/modules/sources.js"></script>
     <script src="/static/app.js"></script>
 </body>
 </html>
