@@ -288,6 +288,7 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
 .placeholder {
@@ -313,6 +314,51 @@ h1 {
 .placeholder p {
     font-size: 1rem;
     opacity: 0.7;
+}
+
+.nav-arrow {
+    position: absolute; /* Take them out of the flex flow */
+    top: 0;
+    bottom: 0;
+    width: 80px; /* Wide clickable area for better UX */
+    display: none; /* JS toggles this to 'flex' */
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 50; /* Above the video/slides but below the header */
+    transition: background 0.3s ease;
+    color: white;
+    font-size: 2rem;
+    text-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.nav-arrow:hover {
+    background: linear-gradient(to right, rgba(0,0,0,0.4), transparent);
+}
+
+#navArrowRight:hover {
+    background: linear-gradient(to left, rgba(0,0,0,0.4), transparent);
+}
+
+/* Specific edge pinning */
+#navArrowLeft {
+    left: 0;
+}
+
+#navArrowRight {
+    right: 0;
+}
+
+/* Style the span icons inside */
+.nav-arrow span {
+    opacity: 0.3;
+    transition: opacity 0.3s;
+}
+
+.nav-arrow:hover span {
+    opacity: 1;
 }
 
 #previewVideo,
