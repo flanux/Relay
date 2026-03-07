@@ -76,7 +76,6 @@
                         <span class="label">Room Code</span>
                         <strong id="displayRoomCode" onclick="app.copyCode()">---</strong>
                     </div>
-                    <span class="status online" id="connectionStatus">● Live</span>
                 </div>
                 <div class="header-actions">
                     <button class="btn btn-small btn-secondary" onclick="document.getElementById('pptxFileInput')?.click()" title="Upload Presentation">
@@ -137,22 +136,6 @@
 
                     <!-- Sidebar -->
                     <div class="sidebar">
-                        <div class="panel">
-                            <h3>👥 Connected (<span id="participantCountSidebar">0</span>)</h3>
-                            <ul id="participantList" class="user-list">
-                                <li class="empty">Waiting for participants...</li>
-                            </ul>
-                        </div>
-
-                        <div class="panel">
-                            <h3>📁 Share Files</h3>
-                            <div class="file-drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-                                <span class="icon">📂</span>
-                                <p>Drop files or click</p>
-                                <input type="file" multiple id="fileInput" hidden onchange="app.handleFiles(this.files)">
-                            </div>
-                            <ul id="fileList" class="file-list"></ul>
-                        </div>
 
                         <div class="panel">
                             <h3>📊 Quick Poll</h3>
@@ -173,6 +156,23 @@
                                 <button class="btn btn-small" onclick="app.closePoll()">End Poll</button>
                             </div>
                         </div>
+
+                            <div class="panel">
+                                <h3>📁 Share Files</h3>
+                                <div class="file-drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                                    <p>Drag files or click</p>
+                                    <input type="file" multiple id="fileInput" hidden onchange="app.handleFiles(this.files)">
+                                </div>
+                                <ul id="fileList" class="file-list"></ul>
+                            </div>
+
+                            <div class="panel">
+                                <h3>👥 Connected (<span id="participantCountSidebar">0</span>)</h3>
+                                <ul id="participantList" class="user-list">
+                                    <li class="empty">Waiting for participants...</li>
+                                </ul>
+                            </div>
+
                     </div>
                 </div>
 
