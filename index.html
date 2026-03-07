@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relay - LAN Collaboration Hub</title>
+    <link rel="stylesheet" href="/static/styles.css?v=4">
+    <meta name="description" content="Zero-setup P2P collaboration tool for local networks">
+</head>
+<body>
+    <div id="app">
+        <!-- Notification Container -->
+        <div id="notifications"></div>
+
+        <!-- Landing View -->
+        <div id="landing" class="view active">
+            <div class="hero">
+                <div class="logo">🔗</div>
+                <h1>Relay</h1>
+                <p class="subtitle">Zero setup. Pure P2P. Works everywhere.</p>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-primary" onclick="app.createRoom()">
+                    <span class="icon">🏠</span>
+                    <div class="btn-text">
+                        <strong>Create Room (Host)</strong>
+                        <small>Start a new collaboration session</small>
+                    </div>
+                </button>
+
+                <div class="divider">or</div>
+
+                <button class="btn btn-secondary" onclick="app.showQRScanner()">
+                    <span class="icon">📷</span>
+                    <span>Scan QR Code</span>
+                </button>
+
+                <div class="divider">or</div>
+
+                <div class="join-form">
+                    <input type="text" id="username" placeholder="Your name" maxlength="30">
+                    <input type="text" id="roomCode" placeholder="Room code (e.g., 192-ABC)" maxlength="10">
+                    <button class="btn btn-secondary" onclick="app.joinRoom()">
+                        <span class="icon">👥</span>
+                        <span>Join as Participant</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="features">
+                <div class="feature">
+                    <span>📡</span>
+                    <small>No Internet</small>
+                </div>
+                <div class="feature">
+                    <span>🔒</span>
+                    <small>Direct P2P</small>
+                </div>
+                <div class="feature">
+                    <span>📱</span>
+                    <small>All Devices</small>
+                </div>
+                <div class="feature">
+                    <span>📽️</span>
+                    <small>Screen Share</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Host Room View -->
+        <div id="host-room" class="view">
+            <header class="room-header">
+                <div class="room-info">
+                    <div class="code-display">
+                        <span class="label">Room Code</span>
+                        <strong id="displayRoomCode" onclick="app.copyCode()">---</strong>
+                        <span class="copy-hint">click to copy</span>
+                    </div>
+                    <span class="status online" id="connectionStatus">● Live</span>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-small btn-secondary" onclick="document.getElementById('pptxFileInput')?.click()" title="Upload Presentation">
+                        <span>📊</span> Upload Slides
+                    </button>
+                    <input 
+                        type="file" 
+                        id="pptxFileInput" 
+                        accept=".pdf,.pptx,.ppt,image/*" 
+                        multiple
+                        style="display: none;"
+                    />
+                    <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem; margin-left: 0.5rem;">
+                        <input type="checkbox" id="replacePDFMode" style="margin: 0;">
+                        <span>Replace PDFs</span>
+                    </label>
+                    <button class="btn btn-small btn-primary" onclick="app.shareAllToParticipants()" title="Share all slides/files to participants">
+                        <span>📤</span> Share All
+                    </button>
+                    <button class="btn btn-small" onclick="app.showQRCode()" title="Show QR Code">
+                        <span>📱</span> QR
+                    </button>
+                    <button class="btn btn-small" onclick="app.toggleNotes()" title="Toggle Notes">
+                        <span>📝</span> Notes
+                    </button>
+                    <button class="btn btn-danger btn-small" onclick="app.closeRoom()">Close</button>
+                </div>
+            </header>
+
+            <div class="host-layout">
+                <!-- Main Panel -->
+                <div class="main-panel">
+                    <div class="screen-share-card">
+                        <div class="card-header">
+                            <h3>📽️ Screen Share</h3>
+                            <button id="shareBtn" class="btn btn-primary" onclick="app.toggleScreenShare()">
+                                Start Sharing
+                            </button>
+                        </div>
+                        <p class="hint">Share your screen so participants can follow along and capture slides</p>
+
+                        <!-- NEW: Source Tab Bar -->
+                        <div id="sourceTabBar" class="source-tabs" style="display: none;">
+                            <!-- Tabs will be added dynamically -->
+                        </div>
+
+                        <div class="preview-container" id="hostPreview">
+                            <div class="placeholder" id="previewPlaceholder">
+                                <span class="icon">🖥️</span>
+                                <p>Click "Start Sharing" to begin</p>
+                            </div>
+                            <video id="previewVideo" autoplay muted></video>
+                            <canvas id="previewCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="sidebar">
+                    <div class="panel">
+                        <h3>👥 Connected (<span id="participantCountSidebar">0</span>)</h3>
+                        <ul id="participantList" class="user-list">
+                            <li class="empty">Waiting for participants...</li>
+                        </ul>
+                    </div>
+
+                    <div class="panel">
+                        <h3>📁 Share Files</h3>
+                        <div class="file-drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                            <span class="icon">📂</span>
+                            <p>Drop files or click</p>
+                            <input type="file" multiple id="fileInput" hidden onchange="app.handleFiles(this.files)">
+                        </div>
+                        <ul id="fileList" class="file-list"></ul>
+                    </div>
+
+                    <div class="panel">
+                        <h3>📊 Quick Poll</h3>
+                        <div id="pollCreator">
+                            <input type="text" id="pollQuestion" placeholder="Ask a question..." maxlength="100">
+                            <div id="pollOptions">
+                                <input type="text" placeholder="Option 1" class="poll-option" maxlength="50">
+                                <input type="text" placeholder="Option 2" class="poll-option" maxlength="50">
+                            </div>
+                            <div class="poll-actions">
+                                <button class="btn btn-small" onclick="app.addPollOption()">+ Add</button>
+                                <button class="btn btn-primary btn-small" onclick="app.createPoll()">Start</button>
+                            </div>
+                        </div>
+                        <div id="activePoll" class="hidden">
+                            <h4 id="activePollQuestion"></h4>
+                            <div id="pollResults" class="poll-bars"></div>
+                            <button class="btn btn-small" onclick="app.closePoll()">End Poll</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes Panel (Hidden by default) -->
+            <div id="notesPanel" class="notes-panel hidden">
+                <div class="notes-header">
+                    <h3>📝 Shared Notes</h3>
+                    <div class="notes-actions">
+                        <span id="notesSaveStatus" class="save-status"></span>
+                        <button class="btn btn-small" onclick="app.clearNotes()">Clear</button>
+                        <button class="btn btn-small" onclick="app.toggleNotes()">×</button>
+                    </div>
+                </div>
+                <textarea id="notesTextarea" placeholder="Type notes here... They'll sync to all participants in real-time"></textarea>
+            </div>
+        </div>
+
+        <!-- Participant Room View -->
+        <div id="participant-room" class="view">
+            <header class="room-header">
+                <div class="room-info">
+                    <span class="badge" id="participantRoomCode">---</span>
+                    <span class="user-badge" id="participantNameDisplay">---</span>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-small" onclick="app.toggleNotes()" title="View Notes">
+                        <span>📝</span> Notes
+                    </button>
+                    <button class="btn btn-text" onclick="app.leaveRoom()">Leave</button>
+                </div>
+            </header>
+
+            <div class="participant-layout">
+                <!-- Slide Viewer Section -->
+                <div class="slide-section">
+                    <div class="slide-viewer" id="slideViewer">
+                        <img id="liveSlide" class="live-slide" alt="Waiting for screen share...">
+                        <canvas id="participantCanvas" style="display: none;"></canvas>
+                        <div class="slide-overlay" id="slideOverlay">
+                            <div class="waiting-animation">
+                                <span class="icon">⏳</span>
+                                <p>Waiting for host to share screen...</p>
+                                <small>Keep this page open</small>
+                            </div>
+                        </div>
+                        <div class="live-badge" id="liveBadge">
+                            <span class="pulse"></span> LIVE
+                        </div>
+                    </div>
+
+                    <div class="slide-controls">
+                        <button class="btn btn-secondary" onclick="app.saveCurrentSlide()">
+                            <span>💾</span> Save This Slide
+                        </button>
+                        <div class="auto-save-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="autoSave" onchange="app.toggleAutoSave()">
+                                <span class="slider"></span>
+                            </label>
+                            <small>Auto-capture (OFF)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gallery Section -->
+                <div class="gallery-section" id="gallerySection">
+                    <h4 style="cursor: pointer; user-select: none;" onclick="app.toggleSection('gallerySection')">
+                        📚 My Saved Slides (<span id="savedCount">0</span>) <span class="toggle-indicator">▼</span>
+                    </h4>
+                    <div class="slide-gallery" id="slideGallery">
+                        <p class="empty-state">Saved slides appear here</p>
+                    </div>
+                    <button class="btn btn-small btn-full" onclick="app.downloadAllSlides()">
+                        📥 Download All Slides
+                    </button>
+                </div>
+
+                <!-- Tools Section -->
+                <div class="tools-section" id="toolsSection">
+                    <div class="tabs">
+                        <h4 style="cursor: pointer; user-select: none; margin: 0 0 1rem 0;" onclick="app.toggleSection('toolsSection')">
+                            🛠️ Tools <span class="toggle-indicator">▼</span>
+                        </h4>
+                        <button class="tab-btn active" data-tab="files" onclick="app.switchTab('files')">📁 Files</button>
+                        <button class="tab-btn" data-tab="polls" onclick="app.switchTab('polls')">📊 Polls</button>
+                        <button class="tab-btn" data-tab="chat" onclick="app.switchTab('chat')">💬 Chat</button>
+                    </div>
+
+                    <div id="filesTab" class="tab-content active">
+                        <ul id="participantFileList" class="file-list">
+                            <li class="empty">No files shared yet</li>
+                        </ul>
+                    </div>
+
+                    <div id="pollsTab" class="tab-content">
+                        <div id="participantPolls" class="polls-container">
+                            <p class="empty">No active polls</p>
+                        </div>
+                    </div>
+
+                    <div id="chatTab" class="tab-content">
+                        <div id="chatMessages" class="chat-box"></div>
+                        <div class="chat-input">
+                            <input type="text" id="chatInput" placeholder="Type message..." onkeypress="if(event.key==='Enter')app.sendChat()">
+                            <button class="btn btn-small" onclick="app.sendChat()">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes Panel (Read-only for participants) -->
+            <div id="participantNotesPanel" class="notes-panel hidden">
+                <div class="notes-header">
+                    <h3>📝 Shared Notes</h3>
+                    <div class="notes-actions">
+                        <button class="btn btn-small" onclick="app.toggleNotes()">×</button>
+                    </div>
+                </div>
+                <textarea id="participantNotesTextarea" placeholder="Notes from host will appear here..." readonly></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Scan to Join</h3>
+                <button class="modal-close" onclick="app.hideQRCode()">&times;</button>
+            </div>
+            <div id="qrCodeContainer" class="qr-container"></div>
+            <div class="qr-info">
+                <p class="room-code-large" id="qrRoomCode">---</p>
+                <p class="qr-hint">Or enter this code manually</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Scanner Modal -->
+	<div id="scannerModal" class="modal hidden">
+	  <div class="modal-content" style="max-width: 400px;">
+	    <div class="modal-header">
+	      <h3>📷 Scan QR Code</h3>
+	      <button class="modal-close" onclick="app.hideQRScanner()">&times;</button>
+	    </div>
+	    
+	    <div id="qr-reader" style="width: 100%; background: #000; border-radius: 8px; overflow: hidden;"></div>
+	    
+	    <div class="scanner-hint" style="text-align: center; padding: 1rem; color: #94a3b8;">
+	      <p>Point camera at host's QR code</p>
+	      <small>Room code will auto-fill</small>
+	    </div>
+	    
+	    <div class="scanner-actions" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+	      <button class="btn btn-secondary" onclick="app.hideQRScanner()" style="flex: 1;">Cancel</button>
+	      <button class="btn btn-primary" onclick="app.useManualCode()" style="flex: 1;">Enter Manually</button>
+	    </div>
+	  </div>
+	</div>
+
+    <!-- Scripts -->
+    <script src="/static/lib/jquery-3.6.0.min.js"></script>  
+
+    <script src="/static/lib/jszip.min.js"></script>
+    <script src="/static/lib/pptxjs.js"></script>
+    <script src="/static/lib/divs2slides.js"></script>
+    <script src="/static/lib/compressor.min.js"></script>
+    <script src="/static/lib/qrcode.min.js"></script>
+    <script src="/static/lib/html5-qrcode.min.js"></script>
+    <script src="/static/modules/storage.js"></script>
+    <script src="/static/modules/webrtc.js"></script>
+    <script src="/static/modules/presentation-manager.js"></script>
+    <script src="/static/modules/slides.js"></script>
+    <script src="/static/modules/polls.js"></script>
+    <script src="/static/modules/notes.js"></script>
+    <script src="/static/modules/pptx.js"></script>
+    <script src="/static/modules/overlay.js"></script>
+    <script src="/static/modules/sources.js"></script>
+    <script src="/static/app.js?v=4"></script>
+
+</body>
+</html>
