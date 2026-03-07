@@ -75,7 +75,6 @@
                     <div class="code-display">
                         <span class="label">Room Code</span>
                         <strong id="displayRoomCode" onclick="app.copyCode()">---</strong>
-                        <span class="copy-hint">click to copy</span>
                     </div>
                     <span class="status online" id="connectionStatus">● Live</span>
                 </div>
@@ -94,14 +93,17 @@
                         <input type="checkbox" id="replacePDFMode" style="margin: 0;">
                         <span>Replace PDFs</span>
                     </label>
+                    <button id="shareBtn" class="btn btn-small btn-primary" onclick="app.toggleScreenShare()" title="Start/Stop Screen Sharing">
+                        <span>🎥</span> <span class="btn-text-desktop">Start Sharing</span>
+                    </button>
                     <button class="btn btn-small btn-primary" onclick="app.shareAllToParticipants()" title="Share all slides/files to participants">
-                        <span>📤</span> Share All
+                        <span>📤</span> <span class="btn-text-desktop">Share All</span>
                     </button>
                     <button class="btn btn-small" onclick="app.showQRCode()" title="Show QR Code">
-                        <span>📱</span> QR
+                        <span>📱</span> <span class="btn-text-desktop">QR</span>
                     </button>
                     <button class="btn btn-small" onclick="app.toggleNotes()" title="Toggle Notes">
-                        <span>📝</span> Notes
+                        <span>📝</span> <span class="btn-text-desktop">Notes</span>
                     </button>
                     <button class="btn btn-danger btn-small" onclick="app.closeRoom()">Close</button>
                 </div>
@@ -111,15 +113,7 @@
                     <!-- Main Panel -->
                     <div class="main-panel">
                         <div class="screen-share-card">
-                            <div class="card-header">
-                                <h3>📽️ Screen Share</h3>
-                                <button id="shareBtn" class="btn btn-primary" onclick="app.toggleScreenShare()">
-                                    Start Sharing
-                                </button>
-                            </div>
-                            <p class="hint">Share your screen so participants can follow along and capture slides</p>
-
-                            <!-- NEW: Source Tab Bar -->
+                            <!-- Source Tab Bar -->
                             <div id="sourceTabBar" class="source-tabs" style="display: none;">
                                 <!-- Tabs will be added dynamically -->
                             </div>
