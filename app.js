@@ -178,6 +178,15 @@ class DeskDockApp {
         
         console.log('✅ Drag-and-drop initialized');
     }
+
+    // for next and pre slide for any 
+    nextSlide() {
+        this.navigateActiveSource(1);
+    }
+
+    prevSlide() {
+        this.navigateActiveSource(-1);
+    }
     
     async shareSingleSlide(sourceId, slideIndex) {
         const source = this.sourceManager?.getAllSources().find(s => s.id === sourceId);
@@ -1348,6 +1357,20 @@ class DeskDockApp {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 const chatInput = document.getElementById('chatInput');
                 if (chatInput && document.activeElement === chatInput) this.sendChat();
+            }
+
+            // 2. NEW: Slide Navigation (Left/Right Arrows)
+            // We check to make sure the user isn't currently typing in a text field
+            const isTyping = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+            
+            if (!isTyping) {
+                if (e.key === 'ArrowRight' || e.key === ' ') {
+                    e.preventDefault(); // Prevent page scroll on spacebar
+                    this.nextSlide();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    this.prevSlide();
+                }
             }
         });
     }
