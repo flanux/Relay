@@ -9,7 +9,7 @@ class SlideSync {
         this.isSharing = false;
         this.captureInterval = null;
         this.lastFrameTime = 0;
-        this.frameRate = 15; // 2 fps for slide capture
+        this.frameRate = 15; // 15 fps for slide capture
         this.autoSave = false; // OFF by default
         this.lastSavedData = null; // Track to avoid duplicates
         this.autoSaveDebounce = null; // Debounce timer
