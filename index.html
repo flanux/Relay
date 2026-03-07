@@ -107,181 +107,187 @@
                 </div>
             </header>
 
-            <div class="host-layout">
-                <!-- Main Panel -->
-                <div class="main-panel">
-                    <div class="screen-share-card">
-                        <div class="card-header">
-                            <h3>📽️ Screen Share</h3>
-                            <button id="shareBtn" class="btn btn-primary" onclick="app.toggleScreenShare()">
-                                Start Sharing
-                            </button>
-                        </div>
-                        <p class="hint">Share your screen so participants can follow along and capture slides</p>
-
-                        <!-- NEW: Source Tab Bar -->
-                        <div id="sourceTabBar" class="source-tabs" style="display: none;">
-                            <!-- Tabs will be added dynamically -->
-                        </div>
-
-                        <div class="preview-container" id="hostPreview">
-                            <div class="placeholder" id="previewPlaceholder">
-                                <span class="icon">🖥️</span>
-                                <p>Click "Start Sharing" to begin</p>
+                <div class="host-layout">
+                    <!-- Main Panel -->
+                    <div class="main-panel">
+                        <div class="screen-share-card">
+                            <div class="card-header">
+                                <h3>📽️ Screen Share</h3>
+                                <button id="shareBtn" class="btn btn-primary" onclick="app.toggleScreenShare()">
+                                    Start Sharing
+                                </button>
                             </div>
-                            <video id="previewVideo" autoplay muted></video>
-                            <canvas id="previewCanvas"></canvas>
+                            <p class="hint">Share your screen so participants can follow along and capture slides</p>
+
+                            <!-- NEW: Source Tab Bar -->
+                            <div id="sourceTabBar" class="source-tabs" style="display: none;">
+                                <!-- Tabs will be added dynamically -->
+                            </div>
+
+                            <div class="preview-container" id="hostPreview">
+                                <button id="navArrowLeft" class="nav-arrow left" onclick="app.prevSlide()">
+                                    <span>&#10094;</span>
+                                    </button>
+                                    <button id="navArrowRight" class="nav-arrow right" onclick="app.nextSlide()">
+                                    <span>&#10095;</span>
+                                </button>
+                                <div class="placeholder" id="previewPlaceholder">
+                                    <span class="icon">🖥️</span>
+                                    <p>Click "Start Sharing" to begin</p>
+                                </div>
+                                <video id="previewVideo" autoplay muted></video>
+                                <canvas id="previewCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar -->
+                    <div class="sidebar">
+                        <div class="panel">
+                            <h3>👥 Connected (<span id="participantCountSidebar">0</span>)</h3>
+                            <ul id="participantList" class="user-list">
+                                <li class="empty">Waiting for participants...</li>
+                            </ul>
+                        </div>
+
+                        <div class="panel">
+                            <h3>📁 Share Files</h3>
+                            <div class="file-drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                                <span class="icon">📂</span>
+                                <p>Drop files or click</p>
+                                <input type="file" multiple id="fileInput" hidden onchange="app.handleFiles(this.files)">
+                            </div>
+                            <ul id="fileList" class="file-list"></ul>
+                        </div>
+
+                        <div class="panel">
+                            <h3>📊 Quick Poll</h3>
+                            <div id="pollCreator">
+                                <input type="text" id="pollQuestion" placeholder="Ask a question..." maxlength="100">
+                                <div id="pollOptions">
+                                    <input type="text" placeholder="Option 1" class="poll-option" maxlength="50">
+                                    <input type="text" placeholder="Option 2" class="poll-option" maxlength="50">
+                                </div>
+                                <div class="poll-actions">
+                                    <button class="btn btn-small" onclick="app.addPollOption()">+ Add</button>
+                                    <button class="btn btn-primary btn-small" onclick="app.createPoll()">Start</button>
+                                </div>
+                            </div>
+                            <div id="activePoll" class="hidden">
+                                <h4 id="activePollQuestion"></h4>
+                                <div id="pollResults" class="poll-bars"></div>
+                                <button class="btn btn-small" onclick="app.closePoll()">End Poll</button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Sidebar -->
-                <div class="sidebar">
-                    <div class="panel">
-                        <h3>👥 Connected (<span id="participantCountSidebar">0</span>)</h3>
-                        <ul id="participantList" class="user-list">
-                            <li class="empty">Waiting for participants...</li>
-                        </ul>
-                    </div>
-
-                    <div class="panel">
-                        <h3>📁 Share Files</h3>
-                        <div class="file-drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-                            <span class="icon">📂</span>
-                            <p>Drop files or click</p>
-                            <input type="file" multiple id="fileInput" hidden onchange="app.handleFiles(this.files)">
-                        </div>
-                        <ul id="fileList" class="file-list"></ul>
-                    </div>
-
-                    <div class="panel">
-                        <h3>📊 Quick Poll</h3>
-                        <div id="pollCreator">
-                            <input type="text" id="pollQuestion" placeholder="Ask a question..." maxlength="100">
-                            <div id="pollOptions">
-                                <input type="text" placeholder="Option 1" class="poll-option" maxlength="50">
-                                <input type="text" placeholder="Option 2" class="poll-option" maxlength="50">
-                            </div>
-                            <div class="poll-actions">
-                                <button class="btn btn-small" onclick="app.addPollOption()">+ Add</button>
-                                <button class="btn btn-primary btn-small" onclick="app.createPoll()">Start</button>
-                            </div>
-                        </div>
-                        <div id="activePoll" class="hidden">
-                            <h4 id="activePollQuestion"></h4>
-                            <div id="pollResults" class="poll-bars"></div>
-                            <button class="btn btn-small" onclick="app.closePoll()">End Poll</button>
+                <!-- Notes Panel (Hidden by default) -->
+                <div id="notesPanel" class="notes-panel hidden">
+                    <div class="notes-header">
+                        <h3>📝 Shared Notes</h3>
+                        <div class="notes-actions">
+                            <span id="notesSaveStatus" class="save-status"></span>
+                            <button class="btn btn-small" onclick="app.clearNotes()">Clear</button>
+                            <button class="btn btn-small" onclick="app.toggleNotes()">×</button>
                         </div>
                     </div>
+                    <textarea id="notesTextarea" placeholder="Type notes here... They'll sync to all participants in real-time"></textarea>
                 </div>
             </div>
 
-            <!-- Notes Panel (Hidden by default) -->
-            <div id="notesPanel" class="notes-panel hidden">
-                <div class="notes-header">
-                    <h3>📝 Shared Notes</h3>
-                    <div class="notes-actions">
-                        <span id="notesSaveStatus" class="save-status"></span>
-                        <button class="btn btn-small" onclick="app.clearNotes()">Clear</button>
-                        <button class="btn btn-small" onclick="app.toggleNotes()">×</button>
+            <!-- Participant Room View -->
+            <div id="participant-room" class="view">
+                <header class="room-header">
+                    <div class="room-info">
+                        <span class="badge" id="participantRoomCode">---</span>
+                        <span class="user-badge" id="participantNameDisplay">---</span>
                     </div>
-                </div>
-                <textarea id="notesTextarea" placeholder="Type notes here... They'll sync to all participants in real-time"></textarea>
-            </div>
-        </div>
-
-        <!-- Participant Room View -->
-        <div id="participant-room" class="view">
-            <header class="room-header">
-                <div class="room-info">
-                    <span class="badge" id="participantRoomCode">---</span>
-                    <span class="user-badge" id="participantNameDisplay">---</span>
-                </div>
-                <div class="header-actions">
-                    <button class="btn btn-small" onclick="app.toggleNotes()" title="View Notes">
-                        <span>📝</span> Notes
-                    </button>
-                    <button class="btn btn-text" onclick="app.leaveRoom()">Leave</button>
-                </div>
-            </header>
-
-            <div class="participant-layout">
-                <!-- Slide Viewer Section -->
-                <div class="slide-section">
-                    <div class="slide-viewer" id="slideViewer">
-                        <img id="liveSlide" class="live-slide" alt="Waiting for screen share...">
-                        <canvas id="participantCanvas" style="display: none;"></canvas>
-                        <div class="slide-overlay" id="slideOverlay">
-                            <div class="waiting-animation">
-                                <span class="icon">⏳</span>
-                                <p>Waiting for host to share screen...</p>
-                                <small>Keep this page open</small>
-                            </div>
-                        </div>
-                        <div class="live-badge" id="liveBadge">
-                            <span class="pulse"></span> LIVE
-                        </div>
-                    </div>
-
-                    <div class="slide-controls">
-                        <button class="btn btn-secondary" onclick="app.saveCurrentSlide()">
-                            <span>💾</span> Save This Slide
+                    <div class="header-actions">
+                        <button class="btn btn-small" onclick="app.toggleNotes()" title="View Notes">
+                            <span>📝</span> Notes
                         </button>
-                        <div class="auto-save-toggle">
-                            <label class="switch">
-                                <input type="checkbox" id="autoSave" onchange="app.toggleAutoSave()">
-                                <span class="slider"></span>
-                            </label>
-                            <small>Auto-capture (OFF)</small>
+                        <button class="btn btn-text" onclick="app.leaveRoom()">Leave</button>
+                    </div>
+                </header>
+
+                <div class="participant-layout">
+                    <!-- Slide Viewer Section -->
+                    <div class="slide-section">
+                        <div class="slide-viewer" id="slideViewer">
+                            <img id="liveSlide" class="live-slide" alt="Waiting for screen share...">
+                            <canvas id="participantCanvas" style="display: none;"></canvas>
+                            <div class="slide-overlay" id="slideOverlay">
+                                <div class="waiting-animation">
+                                    <span class="icon">⏳</span>
+                                    <p>Waiting for host to share screen...</p>
+                                    <small>Keep this page open</small>
+                                </div>
+                            </div>
+                            <div class="live-badge" id="liveBadge">
+                                <span class="pulse"></span> LIVE
+                            </div>
+                        </div>
+
+                        <div class="slide-controls">
+                            <button class="btn btn-secondary" onclick="app.saveCurrentSlide()">
+                                <span>💾</span> Save This Slide
+                            </button>
+                            <div class="auto-save-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" id="autoSave" onchange="app.toggleAutoSave()">
+                                    <span class="slider"></span>
+                                </label>
+                                <small>Auto-capture (OFF)</small>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Gallery Section -->
-                <div class="gallery-section" id="gallerySection">
-                    <h4 style="cursor: pointer; user-select: none;" onclick="app.toggleSection('gallerySection')">
-                        📚 My Saved Slides (<span id="savedCount">0</span>) <span class="toggle-indicator">▼</span>
-                    </h4>
-                    <div class="slide-gallery" id="slideGallery">
-                        <p class="empty-state">Saved slides appear here</p>
-                    </div>
-                    <button class="btn btn-small btn-full" onclick="app.downloadAllSlides()">
-                        📥 Download All Slides
-                    </button>
-                </div>
-
-                <!-- Tools Section -->
-                <div class="tools-section" id="toolsSection">
-                    <div class="tabs">
-                        <h4 style="cursor: pointer; user-select: none; margin: 0 0 1rem 0;" onclick="app.toggleSection('toolsSection')">
-                            🛠️ Tools <span class="toggle-indicator">▼</span>
+                    <!-- Gallery Section -->
+                    <div class="gallery-section" id="gallerySection">
+                        <h4 style="cursor: pointer; user-select: none;" onclick="app.toggleSection('gallerySection')">
+                            📚 My Saved Slides (<span id="savedCount">0</span>) <span class="toggle-indicator">▼</span>
                         </h4>
-                        <button class="tab-btn active" data-tab="files" onclick="app.switchTab('files')">📁 Files</button>
-                        <button class="tab-btn" data-tab="polls" onclick="app.switchTab('polls')">📊 Polls</button>
-                        <button class="tab-btn" data-tab="chat" onclick="app.switchTab('chat')">💬 Chat</button>
-                    </div>
-
-                    <div id="filesTab" class="tab-content active">
-                        <ul id="participantFileList" class="file-list">
-                            <li class="empty">No files shared yet</li>
-                        </ul>
-                    </div>
-
-                    <div id="pollsTab" class="tab-content">
-                        <div id="participantPolls" class="polls-container">
-                            <p class="empty">No active polls</p>
+                        <div class="slide-gallery" id="slideGallery">
+                            <p class="empty-state">Saved slides appear here</p>
                         </div>
+                        <button class="btn btn-small btn-full" onclick="app.downloadAllSlides()">
+                            📥 Download All Slides
+                        </button>
                     </div>
 
-                    <div id="chatTab" class="tab-content">
-                        <div id="chatMessages" class="chat-box"></div>
-                        <div class="chat-input">
-                            <input type="text" id="chatInput" placeholder="Type message..." onkeypress="if(event.key==='Enter')app.sendChat()">
-                            <button class="btn btn-small" onclick="app.sendChat()">Send</button>
+                    <!-- Tools Section -->
+                    <div class="tools-section" id="toolsSection">
+                        <div class="tabs">
+                            <h4 style="cursor: pointer; user-select: none; margin: 0 0 1rem 0;" onclick="app.toggleSection('toolsSection')">
+                                🛠️ Tools <span class="toggle-indicator">▼</span>
+                            </h4>
+                            <button class="tab-btn active" data-tab="files" onclick="app.switchTab('files')">📁 Files</button>
+                            <button class="tab-btn" data-tab="polls" onclick="app.switchTab('polls')">📊 Polls</button>
+                            <button class="tab-btn" data-tab="chat" onclick="app.switchTab('chat')">💬 Chat</button>
+                        </div>
+
+                        <div id="filesTab" class="tab-content active">
+                            <ul id="participantFileList" class="file-list">
+                                <li class="empty">No files shared yet</li>
+                            </ul>
+                        </div>
+
+                        <div id="pollsTab" class="tab-content">
+                            <div id="participantPolls" class="polls-container">
+                                <p class="empty">No active polls</p>
+                            </div>
+                        </div>
+
+                        <div id="chatTab" class="tab-content">
+                            <div id="chatMessages" class="chat-box"></div>
+                            <div class="chat-input">
+                                <input type="text" id="chatInput" placeholder="Type message..." onkeypress="if(event.key==='Enter')app.sendChat()">
+                                <button class="btn btn-small" onclick="app.sendChat()">Send</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
             <!-- Notes Panel (Read-only for participants) -->
             <div id="participantNotesPanel" class="notes-panel hidden">
