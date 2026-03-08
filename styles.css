@@ -1252,7 +1252,40 @@ input:checked + .slider:before {
         border-top: 1px solid var(--border);
         background: var(--bg-card);
         overflow-y: auto;
-        padding-bottom: 80px;
+        padding-bottom: calc(100px + env(safe-area-inset-bottom));
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Make panels compact by default */
+    .sidebar .panel {
+        flex-shrink: 0;
+    }
+
+    /* Files panel gets ALL the remaining space */
+    .sidebar .panel:has(#fileList) {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .sidebar .panel:has(#fileList) h3 {
+        flex-shrink: 0;
+        margin-bottom: 0.5rem;
+    }
+
+    .sidebar .panel:has(#fileList) .file-drop-zone {
+        flex-shrink: 0;
+    }
+
+    .sidebar .panel:has(#fileList) #fileList {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        margin-top: 0.5rem;
+        padding-right: 0.25rem;
     }
 
     /* ===== PARTICIPANT VIEW MOBILE - YOUTUBE VERTICAL LAYOUT ===== */
@@ -1262,6 +1295,7 @@ input:checked + .slider:before {
         grid-template-columns: none !important;
         grid-template-rows: none !important;
         padding: 0 !important;
+        padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important;
         gap: 0 !important;
         height: calc(100vh - 56px);
         overflow-y: auto;
@@ -1372,21 +1406,56 @@ input:checked + .slider:before {
         font-size: 0.9rem;
     }
 
-    /* File list mobile optimization */
-    .file-list li {
+    /* File list mobile optimization - PROPER FIX */
+    .file-list {
+        padding: 0;
+        margin-top: 0.5rem;
+        display: flex;
         flex-direction: column;
-        align-items: flex-start;
         gap: 0.5rem;
-        padding: 0.75rem;
+    }
+
+    .file-list li {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: var(--bg-hover);
+        border-radius: 0.5rem;
+    }
+
+    .file-list .file-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        width: 100%;
     }
 
     .file-list .file-name {
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         word-break: break-word;
+        font-weight: 500;
+        color: var(--text);
     }
 
     .file-list .file-size {
-        font-size: 0.75rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    /* Buttons MUST be visible and touch-friendly */
+    .file-list .file-actions {
+        display: flex;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    .file-list .file-actions .btn {
+        flex: 1;
+        min-height: 44px;
+        font-size: 0.85rem;
+        padding: 0.75rem;
+        white-space: nowrap;
     }
 
     /* Chat optimizations */
@@ -1616,11 +1685,12 @@ input:checked + .slider:before {
 
     /* ===== MISC MOBILE OPTIMIZATIONS ===== */
     .panel {
-        padding: 1rem;
+        padding: 0.75rem;
     }
 
     .panel h3 {
         font-size: 0.85rem;
+        margin-bottom: 0.75rem;
     }
 
     .user-list li {
@@ -1629,15 +1699,16 @@ input:checked + .slider:before {
     }
 
     .file-drop-zone {
-        padding: 1.5rem;
+        padding: 0.75rem;
+        min-height: 60px;
     }
 
     .file-drop-zone .icon {
-        font-size: 2rem;
+        font-size: 1.5rem;
     }
 
     .file-drop-zone p {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
     }
 
     .poll-form input {
@@ -1807,4 +1878,32 @@ input:checked + .slider:before {
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }
+}
+
+/* ========== MOBILE FOOTER SPACER FIX ========== */
+/* Prevents content from hiding behind Android nav bar */
+@media (max-width: 768px) {
+    .sidebar::after {
+        content: '';
+        display: block;
+        height: 10px;
+        flex-shrink: 0;
+        background: transparent;
+    }
+    
+    .tools-section::after {
+        content: '';
+        display: block;
+        height: 10px;
+        flex-shrink: 0;
+        background: transparent;
+    }
+    
+    .participant-layout::after {
+        content: '';
+        display: block;
+        height: 10px;
+        flex-shrink: 0;
+        background: transparent;
+    }
 }
