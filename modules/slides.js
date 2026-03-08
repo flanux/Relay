@@ -58,15 +58,22 @@ class SlideSync {
                 throw new Error('Preview video element not found');
             }
 
+            // don't touch this too
+            /*
             // Hide placeholder
             if (placeholder) {
                 placeholder.style.display = 'none';
             }
+            */
 
             // Show and setup video
             this.previewVideo.srcObject = this.stream;
+
+            // imp: don't uncomment this, the tab system already handles this for now !
+            /*
             this.previewVideo.style.display = 'block';
             this.previewVideo.classList.add('active');
+            */
 
             console.log('🎥 Video element setup complete');
 
@@ -139,6 +146,10 @@ class SlideSync {
     }
 
     async captureFrame() {
+        // only broadcast is screen share tab is active
+        const activeSource = window.app?.sourceManager?.getActiveSource();
+        if(!activeSource || activeSource.type != 'screen') return;
+
         const now = Date.now();
 
         // Throttle frame rate

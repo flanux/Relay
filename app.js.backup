@@ -338,8 +338,6 @@ class DeskDockApp {
             case 'screen':
                 // Show screen share video
                 console.log('📺 Showing screen share');
-                // pause file broadcasting while screen tab is active
-                if(this.previewShare?.isSharing) this.previewShare.stopPreviewShare();
                 if (previewVideo && this.slideSync && this.slideSync.isSharing) {
                     previewVideo.style.display = 'block';
                     previewVideo.classList.add('active');
@@ -347,18 +345,12 @@ class DeskDockApp {
                         previewVideo.srcObject = this.slideSync.stream;
                     }
                 }
-
-                // pause preview share while screen tab is active
-                if (this.previewShare && this.previewShare.isSharing) {
-                    this.previewShare.stopPreviewShare();
-                }
                 break;
                 
             case 'pdf':
             case 'images':
                 // Use PresentationManager!
                 console.log(`📊 Showing ${source.type}: ${source.metadata.title}`);
-
                 
                 const presId = source.data.presentationId;
                 if (!presId || !this.presentationManager) {
@@ -391,18 +383,6 @@ class DeskDockApp {
                 
                 const pres = this.presentationManager.getActive();
                 console.log(`✅ Rendered slide ${pres.current + 1}/${pres.slides.length}`);
-
-                /*
-                // to restart the preview share if it was paused
-                if (this.previewShare && !this.previewShare.isSharing){
-                    this.previewShare.startPreviewShare();
-                }
-                */
-                // start previewShare after img is in Dom
-                if (this.previewShare) {
-                    if(this.previewShare.isSharing) this.previewShare.stopPreviewShare();
-                    setTimeout(() => this.previewShare.startPreviewShare(),100);
-                }
                 break;
                 
             default:
@@ -624,20 +604,6 @@ class DeskDockApp {
         // ✅ NEW: Initialize SourceManager for multi-source switching
         this.sourceManager = new SourceManager(this.p2p);
         
-        // Initialize preview share — broadcasts loaded files to participants
-        this.previewShare = new PreviewShareManager(this.sourceManager);
-        this.previewShare.onFrameReady = (jpeg) => {
-            const activeSource = this.sourceManager?.getActiveSource();
-            if(!activeSource || activeSource.type == 'screen') return;
-            if (this.p2p) {
-                this.p2p.broadcast({
-                    type: 'slide_update',
-                    data: jpeg,
-                    timestamp: Date.now()
-                });
-            }
-        };
-
         // ✅ NEW: Initialize PowerPoint and Overlay modules
         this.pptxRenderer = new PPTXRenderer(this.p2p, this.storage, this.slideSync);
         this.pptxRenderer.init();
@@ -931,11 +897,6 @@ class DeskDockApp {
                         icon: '🖥️'
                     });
                 }
-
-                
-                if (this.previewShare && this.previewShare.isSharing) {
-                    this.previewShare.stopPreviewShare();
-                }
                 
                 // Show overlay controls when screen sharing starts
                 if (this.overlayControls) {
@@ -975,15 +936,6 @@ class DeskDockApp {
             // ✅ NEW: Remove screen share source
             if (this.sourceManager) {
                 this.sourceManager.removeSource('screen-1');
-            }
-
-            if (this.previewShare) {
-                const hasFileSources = this.sourceManager?.getAllSources()
-                    .some(s => ['pptx', 'pdf', 'image'].includes(s.type));
-                
-                if (hasFileSources) {
-                    this.previewShare.startPreviewShare();
-                }
             }
             
             // Hide overlay controls when screen sharing stops

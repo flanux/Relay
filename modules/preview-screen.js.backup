@@ -25,9 +25,8 @@ class PreviewShareManager {
         
         // Target elements
         this.previewContainer = null;
+        this.previewVideo = null;
         this.liveSlide = null;
-
-        this.onFrameReady = null; // Set by app.js — called with each JPEG frame
         
         console.log('✅ PreviewShareManager initialized');
         
@@ -55,7 +54,7 @@ class PreviewShareManager {
      * Initialize canvas and capture elements
      */
     initCanvas() {
-        if (this.canvas) return true; // Already initialized
+        if (this.canvas) return; // Already initialized
         
         // Get preview elements
         this.previewContainer = document.getElementById('hostPreview');
@@ -75,8 +74,8 @@ class PreviewShareManager {
         
         // Set canvas size to match preview container
         const rect = this.previewContainer.getBoundingClientRect();
-        this.canvas.width = 1920;
-        this.canvas.height =  1080;
+        this.canvas.width = rect.width || 1280;
+        this.canvas.height = rect.height || 720;
         
         console.log(`📐 Canvas initialized: ${this.canvas.width}x${this.canvas.height}`);
         return true;
@@ -100,10 +99,19 @@ class PreviewShareManager {
         }
         
         try {
+            // Create stream from canvas
+            this.stream = this.canvas.captureStream(this.fps);
             this.isSharing = true;
             
             // Start capture loop
             this.startCaptureLoop();
+            
+            // Set stream to preview video element (so host can see it too if needed)
+            this.previewVideo = document.getElementById('previewVideo');
+            if (this.previewVideo) {
+                this.previewVideo.srcObject = this.stream;
+                this.previewVideo.style.display = 'none'; // Keep hidden, we're just streaming
+            }
             
             console.log('✅ Preview share started');
             
@@ -176,34 +184,33 @@ class PreviewShareManager {
         if (!this.ctx || !this.canvas) return;
         
         try {
-            this.ctx.fillStyle = '#1a1a2e';
+            // Clear canvas
+            this.ctx.fillStyle = '#000000';
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
             
-            // Find the active rendered slide img inside previewPlaceholder
-            const placeholder = document.getElementById('previewPlaceholder');
-            const target = placeholder?.querySelector('img');
-
-            if (target && target.src && target.naturalWidth) {
-                const scale = Math.min(
-                    this.canvas.width / target.naturalWidth,
-                    this.canvas.height / target.naturalHeight
-                );
-                const w = target.naturalWidth * scale;
-                const h = target.naturalHeight * scale;
-                const x = (this.canvas.width - w) / 2;
-                const y = (this.canvas.height - h) / 2;
-                this.ctx.drawImage(target, x, y, w, h);
+            // Draw live slide if visible
+            if (this.liveSlide && this.liveSlide.classList.contains('active')) {
+                // Calculate aspect ratio fit
+                const imgWidth = this.liveSlide.naturalWidth || this.liveSlide.width;
+                const imgHeight = this.liveSlide.naturalHeight || this.liveSlide.height;
+                
+                if (imgWidth && imgHeight) {
+                    const scale = Math.min(
+                        this.canvas.width / imgWidth,
+                        this.canvas.height / imgHeight
+                    );
+                    
+                    const scaledWidth = imgWidth * scale;
+                    const scaledHeight = imgHeight * scale;
+                    const x = (this.canvas.width - scaledWidth) / 2;
+                    const y = (this.canvas.height - scaledHeight) / 2;
+                    
+                    this.ctx.drawImage(this.liveSlide, x, y, scaledWidth, scaledHeight);
+                }
             }
-
-            // Broadcast the frame as JPEG via the same pipeline as screen share
-            if (this.onFrameReady) {
-                // only broadcast if a file tab is active (not screen share)
-                const activeSource = window.app?.sourceManager?.getActiveSource();
-                if(!activeSource || activeSource.type == 'screen') return;
-
-                const jpeg = this.canvas.toDataURL('image/jpeg', 0.85);
-                this.onFrameReady(jpeg);
-            }
+            
+            // Alternative: Draw the entire preview container using html2canvas-like technique
+            // This would capture nav arrows and overlays too, but requires more processing
             
         } catch (error) {
             console.error('Error capturing preview:', error);

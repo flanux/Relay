@@ -71,7 +71,7 @@ class SourceManager {
         }
 
         // Auto-activate if it's the first source
-        if (this.sources.size === 1) {
+        if (this.sources.size === 1 && type != 'screen') {
             this.activateSource(id);
         }
 
