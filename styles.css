@@ -1236,10 +1236,10 @@ input:checked + .slider:before {
 
     /* Video section at top - YouTube style */
     .main-panel {
-        flex: 0 0 56vh; /* Fixed height for video */
+        flex: 0 0 35vh; /* Fixed height for video */
         width: 100% !important;
-        min-height: 300px;
-        max-height: 62vh;
+        min-height: 250px;
+        max-height: 40vh;
         position: relative;
         z-index: 10;
     }
