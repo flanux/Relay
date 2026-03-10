@@ -1,21 +1,95 @@
 import socket
 import webbrowser
 import json
+import re
+import subprocess
+import sys
 from aiohttp import web
 
 # -----------------------------
-# LAN IP DETECTION
+# LAN IP DETECTION (Windows-aware)
 # -----------------------------
 
-def get_lan_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+def get_lan_ips():
+    """
+    Return a deduplicated, priority-sorted list of LAN IPv4 addresses.
+
+    Discovery order:
+      1. Windows `ipconfig` — skips virtual / VPN adapters
+      2. Hostname DNS resolution  (cross-platform fallback)
+      3. UDP-socket trick         (last resort)
+
+    Subnet priority: 192.168.x.x > 10.x.x.x > 172.16-31.x.x > other
+    """
+    candidates = []
+
+    # --- Method 1 : Windows ipconfig ---
+    if sys.platform == "win32":
+        try:
+            output = subprocess.check_output(
+                ["ipconfig"],
+                text=True,
+                stderr=subprocess.DEVNULL,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
+            # Split output into per-adapter blocks (each block starts at col 0)
+            blocks = re.split(r"(?:\r?\n)(?=\S)", output)
+            SKIP = ("vmware", "virtualbox", "vbox", "vpn", "loopback",
+                    "pseudo", "teredo", "isatap", "bluetooth", "tunnel",
+                    "6to4", "miniport", "hyper-v")
+            for block in blocks:
+                header = block[:120].lower()
+                if any(k in header for k in SKIP):
+                    continue
+                for ip in re.findall(
+                    r"IPv4 Address[\. ]+:\s*(\d{1,3}(?:\.\d{1,3}){3})", block
+                ):
+                    if not ip.startswith(("127.", "169.254.")):
+                        candidates.append(ip)
+        except Exception:
+            pass
+
+    # --- Method 2 : Hostname resolution ---
     try:
-        s.connect(("8.8.8.8", 80))
-        return s.getsockname()[0]
-    except:
-        return "127.0.0.1"
-    finally:
-        s.close()
+        hostname = socket.gethostname()
+        for res in socket.getaddrinfo(hostname, None, socket.AF_INET):
+            ip = res[4][0]
+            if not ip.startswith(("127.", "169.254.")):
+                candidates.append(ip)
+    except Exception:
+        pass
+
+    # --- Method 3 : UDP-socket trick (original fallback) ---
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("8.8.8.8", 80))
+            candidates.append(s.getsockname()[0])
+        finally:
+            s.close()
+    except Exception:
+        pass
+
+    # Deduplicate, preserve discovery order, then sort by subnet preference
+    seen: set = set()
+    unique = [ip for ip in candidates if ip not in seen and not seen.add(ip)]  # type: ignore[func-returns-value]
+
+    def _score(ip: str) -> int:
+        if ip.startswith("192.168."):
+            return 0
+        if ip.startswith("10."):
+            return 1
+        if re.match(r"^172\.(1[6-9]|2\d|3[01])\.", ip):
+            return 2
+        return 3
+
+    unique.sort(key=_score)
+    return unique or ["127.0.0.1"]
+
+
+def get_lan_ip() -> str:
+    """Return the single best LAN IP (first result from get_lan_ips)."""
+    return get_lan_ips()[0]
 
 # -----------------------------
 # ROOM STORAGE
@@ -104,7 +178,8 @@ app.router.add_static("/static/", ".", show_index=False)
 # START SERVER
 # -----------------------------
 
-ip = get_lan_ip()
+all_ips = get_lan_ips()
+ip = all_ips[0]          # best candidate (used for QR)
 localhost_url = "http://localhost:8000"
 lan_url = f"http://{ip}:8000"
 
@@ -114,7 +189,13 @@ print(f"✅ HOST (Teacher): Open browser at:")
 print(f"   {localhost_url}")
 print(f"")
 print(f"📱 PARTICIPANTS (Students): Connect via QR or use:")
-print(f"   {lan_url}")
+print(f"   {lan_url}  ← used for QR code")
+if len(all_ips) > 1:
+    print(f"")
+    print(f"🔎 All detected LAN interfaces:")
+    for idx, addr in enumerate(all_ips):
+        marker = "  ← selected" if idx == 0 else ""
+        print(f"   http://{addr}:8000{marker}")
 print("=" * 60)
 print("")
 print("💡 Host MUST use localhost for screen sharing to work!")

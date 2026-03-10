@@ -773,6 +773,10 @@ class DeskDockApp {
             case 'file_metadata':
                 this.receiveFileMetadata(data);
                 break;
+
+            case 'file_data':
+                this.receiveFileData(data);
+                break;
             
             // ✅ NEW: PowerPoint presentation messages
             case 'pptx_loaded':
@@ -1104,6 +1108,11 @@ class DeskDockApp {
 
             const reader = new FileReader();
             reader.onload = (e) => {
+                // Store data locally so the host can also download the file
+                const entry = this.files.find(f => f.id === fileInfo.id);
+                if (entry) entry.data = e.target.result;
+                this.enableDownloadButton(fileInfo.id);
+
                 this.p2p.broadcast({
                     type: 'file_data',
                     fileId: fileInfo.id,
@@ -1130,6 +1139,7 @@ class DeskDockApp {
         if (empty) empty.remove();
 
         const li = document.createElement('li');
+        li.className = 'file-item';
         li.dataset.fileId = fileInfo.id;
         
         const info = document.createElement('div');
@@ -1146,7 +1156,64 @@ class DeskDockApp {
         info.appendChild(name);
         info.appendChild(size);
         li.appendChild(info);
+
+        if (isParticipant) {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-small download-btn';
+            btn.textContent = '⏳';
+            btn.disabled = true;
+            btn.title = 'Waiting for file data...';
+            btn.onclick = () => this.downloadFileById(fileInfo.id);
+            li.appendChild(btn);
+        } else {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-small btn-danger';
+            btn.textContent = '🗑️ Remove';
+            btn.title = 'Remove file';
+            btn.onclick = () => this.removeFile(fileInfo.id);
+            li.appendChild(btn);
+        }
+
         list.appendChild(li);
+    }
+
+    removeFile(fileId) {
+        this.files = this.files.filter(f => f.id !== fileId);
+        const li = document.querySelector(`[data-file-id="${fileId}"]`);
+        if (li) li.remove();
+        const list = document.getElementById('fileList');
+        if (list && list.children.length === 0) {
+            list.innerHTML = '<li class="empty">No files shared yet</li>';
+        }
+        this.updateFileCount();
+    }
+
+    enableDownloadButton(fileId) {
+        const li = document.querySelector(`[data-file-id="${fileId}"]`);
+        if (!li) return;
+        const btn = li.querySelector('.download-btn');
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '⬇️ Download';
+            btn.title = 'Download file';
+        }
+    }
+
+    downloadFileById(fileId) {
+        const file = this.files.find(f => f.id === fileId);
+        if (!file || !file.data) return;
+        const a = document.createElement('a');
+        a.href = file.data;
+        a.download = file.name;
+        a.click();
+    }
+
+    receiveFileData(data) {
+        const file = this.files.find(f => f.id === data.fileId);
+        if (file) {
+            file.data = data.data;
+            this.enableDownloadButton(data.fileId);
+        }
     }
 
     formatFileSize(bytes) {
