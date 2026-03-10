@@ -124,10 +124,7 @@ class PPTXRenderer {
         // Render all pages with AWAIT (prevents race condition!)
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
-            const baseViewport = page.getViewport({ scale: 1 });
-            const targetWidth = 1920;
-            const scale = Math.min(2.5, targetWidth / baseViewport.width);
-            const viewport = page.getViewport({ scale }); // Limit scale to save memory
+            const viewport = page.getViewport({ scale: 1.3 }); // Limit scale to save memory
             
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
