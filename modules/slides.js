@@ -241,7 +241,7 @@ class SlideSync {
         if (!gallery) return;
 
         // Remove empty state
-        const emptyState = gallery.querySelector('.empty-state');
+        const emptyState = document.getElementById('galleryEmptyState');
         if (emptyState) {
             emptyState.remove();
         }

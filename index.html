@@ -74,7 +74,8 @@
                 <div class="room-info">
                     <div class="code-display">
                         <span class="label">Room Code</span>
-                        <strong id="displayRoomCode" onclick="app.copyCode()">---</strong>
+                        <strong id="displayRoomCode">---</strong>
+                        <button class="copy-btn" onclick="app.copyCode()" title="Copy room code"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
                     </div>
                 </div>
                 <div class="header-actions">
@@ -242,8 +243,8 @@
                         <h4 style="cursor: pointer; user-select: none;" onclick="app.toggleSection('gallerySection')">
                             📚 My Saved Slides (<span id="savedCount">0</span>) <span class="toggle-indicator">▼</span>
                         </h4>
+                        <p class="empty-state gallery-empty" id="galleryEmptyState">Saved slides appear here</p>
                         <div class="slide-gallery" id="slideGallery">
-                            <p class="empty-state">Saved slides appear here</p>
                         </div>
                         <button class="btn btn-small btn-full" onclick="app.downloadAllSlides()">
                             📥 Download All Slides
@@ -252,10 +253,10 @@
 
                     <!-- Tools Section -->
                     <div class="tools-section" id="toolsSection">
+                        <div class="tools-section-header" onclick="app.toggleSection('toolsSection')">
+                            <h4>🛠️ Tools <span class="toggle-indicator">▼</span></h4>
+                        </div>
                         <div class="tabs">
-                            <h4 style="cursor: pointer; user-select: none; margin: 0 0 1rem 0;" onclick="app.toggleSection('toolsSection')">
-                                🛠️ Tools <span class="toggle-indicator">▼</span>
-                            </h4>
                             <button class="tab-btn active" data-tab="files" onclick="app.switchTab('files')">📁 Files</button>
                             <button class="tab-btn" data-tab="polls" onclick="app.switchTab('polls')">📊 Polls</button>
                             <button class="tab-btn" data-tab="chat" onclick="app.switchTab('chat')">💬 Chat</button>

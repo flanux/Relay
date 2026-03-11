@@ -155,14 +155,14 @@ h1 {
     gap: 0.5rem;
     background: var(--bg-hover);
     border-radius: 0.5rem;
-    cursor: pointer;
     transition: background 0.2s;
-    height: 2rem;
-    width: 14rem;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    white-space: nowrap;
 }
 
 .code-display:hover {
-    background: var(--primary-dark);
+    background: rgba(99, 102, 241, 0.15);
 }
 
 .code-display .label {
@@ -176,6 +176,30 @@ h1 {
     font-size: 1.1rem;
     font-weight: 600;
     letter-spacing: 1px;
+}
+
+.copy-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: white;
+    font-size: 0.95rem;
+    padding: 0.15rem 0.35rem;
+    border-radius: 0.3rem;
+    transition: background 0.2s, transform 0.15s;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.copy-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.15);
+}
+
+.copy-btn:active {
+    transform: scale(0.95);
 }
 
 .copy-hint {
@@ -587,9 +611,19 @@ h1 {
     color: white;
 }
 
+.btn-primary,
+.btn-primary * {
+    color: white;
+}
+
 .btn-primary:hover {
     background: var(--primary-dark);
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-primary .btn-text small {
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .btn-secondary {
@@ -1027,11 +1061,23 @@ input:checked + .slider:before {
     margin-bottom: 0.75rem;
 }
 
+/* When gallery only has the empty-state paragraph, switch to block so text isn't crammed into an 80px grid column */
+.slide-gallery:has(> .empty-state) {
+    display: block;
+}
+
 .empty-state {
     color: var(--text-muted);
     text-align: center;
-    padding: 2rem;
-    font-size: 0.9rem;
+    padding: 1rem 0.5rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    grid-column: 1 / -1;
+}
+
+.gallery-empty {
+    white-space: nowrap;
+    grid-column: 1 / -1;
 }
 
 .slide-thumbnail {
@@ -1089,17 +1135,34 @@ input:checked + .slider:before {
     overflow: hidden;
 }
 
+.tools-section-header {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.tools-section-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .tabs {
     display: flex;
-    gap: 0.5rem;
+    flex-wrap: nowrap;
+    gap: 0;
     margin-bottom: 1rem;
     border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
 }
 
 .tab-btn {
     flex: 1;
-    padding: 0.75rem;
+    padding: 0.75rem 0.5rem;
     background: none;
     border: none;
     color: var(--text-muted);
@@ -1109,7 +1172,11 @@ input:checked + .slider:before {
     border-bottom: 2px solid transparent;
     margin-bottom: -1px;
     font-size: 0.85rem;
-    min-width: fit-content;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
 }
 
 .tab-btn:hover {
@@ -1372,6 +1439,10 @@ input:checked + .slider:before {
         margin-bottom: 0.5rem;
     }
 
+    .slide-gallery:has(> .empty-state) {
+        display: block !important;
+    }
+
     /* Tools section - at bottom */
     .tools-section {
         grid-column: unset !important;
@@ -1386,20 +1457,28 @@ input:checked + .slider:before {
         min-height: 300px;
     }
 
-    .tools-section h4 {
+    .tools-section h4,
+    .tools-section-header h4 {
         font-size: 0.95rem;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0;
+    }
+
+    .tools-section-header {
+        padding-bottom: 0.5rem;
+        margin-bottom: 0;
     }
 
     .tabs {
-        gap: 0.25rem;
+        flex-wrap: nowrap;
+        gap: 0;
         margin-bottom: 0.75rem;
     }
 
     .tab-btn {
-        padding: 0.6rem 0.5rem;
-        font-size: 0.8rem;
-        min-width: auto;
+        padding: 0.6rem 0.25rem;
+        font-size: 0.78rem;
+        min-width: 0;
+        flex: 1;
     }
 
     .tab-content {
