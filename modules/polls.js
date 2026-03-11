@@ -143,7 +143,7 @@ class PollManager {
             label.className = 'poll-bar-label';
             label.innerHTML = `
                 <span>${option}</span>
-                <span>${count} vote${count !== 1 ? 's' : ''}</span>
+                <span>${count} vote${count !== 1 ? 's' : ''} (${Math.round(percentage)}%)</span>
             `;
 
             const container = document.createElement('div');
@@ -152,7 +152,6 @@ class PollManager {
             const fill = document.createElement('div');
             fill.className = 'poll-bar-fill';
             fill.style.width = percentage + '%';
-            fill.textContent = percentage > 10 ? Math.round(percentage) + '%' : '';
 
             container.appendChild(fill);
             barDiv.appendChild(label);
@@ -225,7 +224,7 @@ class PollManager {
         const removeBtn = document.createElement('button');
         removeBtn.className = 'poll-option-remove';
         removeBtn.title = 'Remove';
-        removeBtn.textContent = '✕';
+        removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
         removeBtn.onclick = () => row.remove();
 
         row.appendChild(input);

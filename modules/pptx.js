@@ -47,7 +47,7 @@ class PPTXRenderer {
         if (!files || files.length === 0) return;
 
         if (window.app) {
-            window.app.showNotification('⏳ Processing files...', 'info');
+            window.app.showNotification('Processing files...', 'info');
         }
 
         try {
@@ -157,7 +157,7 @@ class PPTXRenderer {
         }
 
         if (window.app) {
-            window.app.showNotification(`✅ ${file.name} (${pdf.numPages} pages)`, 'success');
+            window.app.showNotification(`${file.name} (${pdf.numPages} pages)`, 'success');
         }
     }
 
@@ -181,7 +181,7 @@ class PPTXRenderer {
 
         window.app.presentationManager.create(oldImagesId, 'images', {
             title: `Images (${files.length})`,
-            icon: '🖼️'
+            icon: '<i class="fa-solid fa-images"></i>'
         });
 
         // Load all images
@@ -200,12 +200,12 @@ class PPTXRenderer {
                 presentationId: oldImagesId
             }, {
                 title: `Images (${files.length})`,
-                icon: '🖼️'
+                icon: '<i class="fa-solid fa-images"></i>'
             });
         }
 
         if (window.app) {
-            window.app.showNotification(`✅ Loaded ${files.length} image(s)`, 'success');
+            window.app.showNotification(`Loaded ${files.length} image(s)`, 'success');
         }
     }
 
@@ -370,7 +370,7 @@ class PPTXRenderer {
         
         // Show notification
         if (window.app) {
-            window.app.showNotification(`📊 Presentation loaded (${this.slides.length} slides)`, 'success');
+            window.app.showNotification(`Presentation loaded (${this.slides.length} slides)`, 'success');
         }
     }
 

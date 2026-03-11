@@ -560,7 +560,7 @@ class DeskDockApp {
             
             li.innerHTML = `
                 <div class="file-info">
-                    <strong>📄 ${file.name}</strong>
+                    <strong><i class="fa-solid fa-file"></i> ${file.name}</strong>
                     <span class="file-meta">${fileSize} • ${timestamp}</span>
                 </div>
                 <button class="btn btn-small" onclick="app.downloadFile(${index})">Download</button>
@@ -715,7 +715,7 @@ class DeskDockApp {
 
         this.p2p.onPeerDisconnect((peerId) => {
             console.log("❌ Peer disconnected:", peerId);
-            this.updateParticipantCount();
+            this.removeParticipant(peerId);
         });
     }
 
@@ -825,7 +825,7 @@ class DeskDockApp {
                 console.log('📥 Received file:', data.file.name);
                 this.files.push(data.file);
                 this.updateFilesList();
-                this.showNotification(`📥 New file: ${data.file.name}`, 'success');
+                this.showNotification(`New file: ${data.file.name}`, 'success');
                 break;
         }
     }
@@ -843,7 +843,7 @@ class DeskDockApp {
         if (!document.querySelector(`[data-peer-id="${peerId}"]`)) {
             const li = document.createElement('li');
             li.dataset.peerId = peerId;
-            li.textContent = `👤 ${username}`;
+            li.innerHTML = `<i class="fa-solid fa-user"></i> ${username}<span class="status-dot connected" title="Connected"></span>`;
             list.appendChild(li);
         }
 
@@ -859,7 +859,12 @@ class DeskDockApp {
         this.participants.delete(peerId);
         
         const li = document.querySelector(`[data-peer-id="${peerId}"]`);
-        if (li) li.remove();
+        if (li) {
+            li.classList.add('disconnected');
+            const dot = li.querySelector('.status-dot');
+            if (dot) { dot.classList.remove('connected'); dot.classList.add('disconnected'); dot.title = 'Disconnected'; }
+            setTimeout(() => li.remove(), 2000);
+        }
 
         const list = document.getElementById('participantList');
         if (list && list.children.length === 0) {
@@ -1015,16 +1020,16 @@ class DeskDockApp {
         this.showNotification('Slide saved', 'success');
     }
 
-    toggleAutoSave() {
-        const checkbox = document.getElementById('autoSave');
-        if (checkbox && this.slideSync) {
-            this.slideSync.setAutoSave(checkbox.checked);
-            const status = checkbox.checked ? 'ON' : 'OFF';
-            const label = checkbox.closest('.auto-save-toggle')?.querySelector('small');
-            if (label) label.textContent = `Auto-capture (${status})`;
-            this.showNotification(`Auto-capture ${status}`, 'info');
-        }
-    }
+    // toggleAutoSave() {
+    //     const checkbox = document.getElementById('autoSave');
+    //     if (checkbox && this.slideSync) {
+    //         this.slideSync.setAutoSave(checkbox.checked);
+    //         const status = checkbox.checked ? 'ON' : 'OFF';
+    //         const label = checkbox.closest('.auto-save-toggle')?.querySelector('small');
+    //         if (label) label.textContent = `Auto-capture (${status})`;
+    //         this.showNotification(`Auto-capture ${status}`, 'info');
+    //     }
+    // }
 
     async downloadAllSlides() {
         await this.slideSync.downloadAllSlides();
@@ -1186,7 +1191,7 @@ class DeskDockApp {
         if (isParticipant) {
             const btn = document.createElement('button');
             btn.className = 'btn btn-small download-btn';
-            btn.textContent = '⏳';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             btn.disabled = true;
             btn.title = 'Waiting for file data...';
             btn.onclick = () => this.downloadFileById(fileInfo.id);
@@ -1194,7 +1199,7 @@ class DeskDockApp {
         } else {
             const btn = document.createElement('button');
             btn.className = 'btn btn-small btn-danger';
-            btn.textContent = '🗑️ Remove';
+            btn.innerHTML = '<i class="fa-solid fa-trash"></i> Remove';
             btn.title = 'Remove file';
             btn.onclick = () => this.removeFile(fileInfo.id);
             li.appendChild(btn);
@@ -1220,7 +1225,7 @@ class DeskDockApp {
         const btn = li.querySelector('.download-btn');
         if (btn) {
             btn.disabled = false;
-            btn.textContent = '⬇️ Download';
+            btn.innerHTML = '<i class="fa-solid fa-download"></i> Download';
             btn.title = 'Download file';
         }
     }

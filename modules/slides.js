@@ -256,7 +256,7 @@ class SlideSync {
 
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove';
-        removeBtn.textContent = '×';
+        removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
         removeBtn.onclick = (e) => {
             e.stopPropagation();
             this.deleteSlide(slideId);
@@ -285,6 +285,14 @@ class SlideSync {
         }
 
         this.updateSlideCount();
+    }
+
+    updateSlideCount() {
+        const gallery = document.getElementById('slideGallery');
+        const countEl = document.getElementById('savedCount');
+        if (countEl && gallery) {
+            countEl.textContent = gallery.querySelectorAll('.slide-thumbnail').length;
+        }
     }
 
     viewSlide(imageData) {
