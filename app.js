@@ -449,6 +449,20 @@ class DeskDockApp {
             // Last slide gone — remove source and presentation entirely
             this.sourceManager.removeSource(sourceId);
             this.presentationManager.remove(presId);
+            // Clear the preview area so the deleted image doesn't linger
+            const previewPlaceholder = document.getElementById('previewPlaceholder');
+            if (previewPlaceholder) {
+                previewPlaceholder.innerHTML = `
+                    <span class="icon"><i class="fa-solid fa-desktop"></i></span>
+                    <p>Click "Start Sharing" to begin</p>
+                `;
+                previewPlaceholder.style.display = 'flex';
+                previewPlaceholder.classList.remove('hidden');
+            }
+            const leftArrow = document.getElementById('navArrowLeft');
+            const rightArrow = document.getElementById('navArrowRight');
+            if (leftArrow) leftArrow.style.display = 'none';
+            if (rightArrow) rightArrow.style.display = 'none';
         } else {
             // Clamp pointer so it stays in-bounds
             pres.current = Math.min(idx, pres.slides.length - 1);
