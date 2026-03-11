@@ -878,10 +878,18 @@ class DeskDockApp {
     }
 
     closeRoom() {
-        if (!confirm('Close room? All participants will be disconnected.')) return;
-        this.cleanup();
-        this.showView('landing');
-        this.showNotification('Room closed', 'info');
+        showConfirm({
+            title: 'Close Room',
+            message: 'Close room? All participants will be disconnected.',
+            confirmText: 'Close',
+            cancelText: 'Cancel',
+            danger: true,
+            onConfirm: () => {
+                this.cleanup();
+                this.showView('landing');
+                this.showNotification('Room closed', 'info');
+            }
+        });
     }
 
     leaveRoom() {
@@ -1052,7 +1060,25 @@ class DeskDockApp {
 
     // ========== Notes ==========
     toggleNotes() { this.notesManager?.toggle(); }
-    clearNotes() { this.notesManager?.clearNotes(); }
+    clearNotes() {
+        showConfirm({
+            title: 'Clear Notes',
+            message: 'Clear all notes? This cannot be undone.',
+            confirmText: 'OK',
+            cancelText: 'Cancel',
+            danger: true,
+            onConfirm: () => {
+                const textarea = document.getElementById('notesTextarea');
+                if (textarea) textarea.value = '';
+                if (this.notesManager) {
+                    this.notesManager.lastContent = '';
+                    if (this.storage && this.roomId) this.storage.clearNotes(this.roomId);
+                    this.p2p?.broadcast({ type: 'notes_cleared', timestamp: Date.now() });
+                    this.notesManager.showSaveStatus('Notes cleared');
+                }
+            }
+        });
+    }
 
     // ========== Files ==========
     setupDragAndDrop() {
@@ -1448,7 +1474,7 @@ class DeskDockApp {
         const target = document.getElementById(viewId);
         if (target) {
             target.classList.add('active');
-            target.style.display = 'block';
+            target.style.display = viewId === 'landing' ? 'flex' : 'block';
             window.scrollTo(0, 0);
         }
     }
@@ -1495,3 +1521,30 @@ class DeskDockApp {
 const app = new DeskDockApp();
 window.app = app;
 console.log('🔗 DeskDock loaded successfully');
+
+// Global confirm modal utility
+window.showConfirm = function({ title, message, confirmText = 'OK', cancelText = 'Cancel', danger = false, onConfirm }) {
+    const existing = document.getElementById('confirmModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'confirmModal';
+    modal.className = 'modal confirm-modal';
+    modal.innerHTML = `
+        <div class="modal-content confirm-modal-content">
+            <h3 class="confirm-title">${title}</h3>
+            <p class="confirm-message">${message}</p>
+            <div class="confirm-actions">
+                <button class="btn btn-secondary" id="confirmCancelBtn">${cancelText}</button>
+                <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="confirmOkBtn">${confirmText}</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const close = () => modal.remove();
+    modal.querySelector('#confirmCancelBtn').onclick = close;
+    modal.querySelector('#confirmOkBtn').onclick = () => { close(); onConfirm(); };
+    modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+};

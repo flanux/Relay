@@ -98,10 +98,11 @@ class NotesManager {
 
     clearNotes() {
         if (!this.isHost) return;
+        this.doClearNotes();
+    }
 
-        if (!confirm('Clear all notes? This cannot be undone.')) {
-            return;
-        }
+    doClearNotes() {
+        if (!this.isHost) return;
 
         this.textarea.value = '';
         this.lastContent = '';

@@ -813,12 +813,17 @@ textarea {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(15, 23, 42, 0.9); /* Match your --bg color */
+    background: rgba(15, 23, 42, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10000; /* Increased to stay above the sidebar */
+    z-index: 10000;
     backdrop-filter: blur(5px);
+}
+
+.confirm-modal {
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: none;
 }
 
 .modal.hidden {
@@ -894,6 +899,38 @@ textarea {
 .qr-hint {
     color: var(--text-muted);
     font-size: 0.9rem;
+}
+
+/* ========== CONFIRM MODAL ========== */
+.confirm-modal-content {
+    max-width: 300px;
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.confirm-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.confirm-message {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 1.25rem;
+    line-height: 1.5;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.confirm-actions .btn {
+    min-width: 80px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
 }
 
 /* ========== PARTICIPANT VIEW STYLES (Missing from current CSS) ========== */
