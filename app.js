@@ -463,6 +463,10 @@ class DeskDockApp {
             const rightArrow = document.getElementById('navArrowRight');
             if (leftArrow) leftArrow.style.display = 'none';
             if (rightArrow) rightArrow.style.display = 'none';
+            // Notify participants to reset their view
+            if (this.p2p) {
+                this.p2p.broadcast({ type: 'slide_cleared' });
+            }
         } else {
             // Clamp pointer so it stays in-bounds
             pres.current = Math.min(idx, pres.slides.length - 1);
@@ -884,6 +888,19 @@ class DeskDockApp {
                     console.log('📥 Participant: Source removed -', data.sourceId);
                 }
                 break;
+
+            case 'slide_cleared':
+                // Host deleted all slides — reset participant view to waiting state
+                const liveSlide = document.getElementById('liveSlide');
+                const slideOverlay = document.getElementById('slideOverlay');
+                const liveBadge = document.getElementById('liveBadge');
+                if (liveSlide) {
+                    liveSlide.src = '';
+                    liveSlide.classList.remove('active');
+                }
+                if (slideOverlay) slideOverlay.classList.remove('hidden');
+                if (liveBadge) liveBadge.classList.remove('active');
+                break;
             
             case 'file_shared':
                 // Participant receives shared file
@@ -963,10 +980,18 @@ class DeskDockApp {
     }
 
     leaveRoom() {
-        if (!confirm('Leave room?')) return;
-        this.cleanup();
-        this.showView('landing');
-        this.showNotification('Left room', 'info');
+        showConfirm({
+            title: 'Leave Room',
+            message: 'Leave the room?',
+            confirmText: 'Leave',
+            cancelText: 'Cancel',
+            danger: true,
+            onConfirm: () => {
+                this.cleanup();
+                this.showView('landing');
+                this.showNotification('Left room', 'info');
+            }
+        });
     }
 
     cleanup() {
