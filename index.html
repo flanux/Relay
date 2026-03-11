@@ -143,8 +143,14 @@
                             <div id="pollCreator">
                                 <input type="text" id="pollQuestion" placeholder="Ask a question..." maxlength="100">
                                 <div id="pollOptions">
-                                    <input type="text" placeholder="Option 1" class="poll-option" maxlength="50">
-                                    <input type="text" placeholder="Option 2" class="poll-option" maxlength="50">
+                                    <div class="poll-option-row">
+                                        <input type="text" placeholder="Option 1" class="poll-option" maxlength="50">
+                                        <button class="poll-option-remove" onclick="this.parentElement.remove()" title="Remove">✕</button>
+                                    </div>
+                                    <div class="poll-option-row">
+                                        <input type="text" placeholder="Option 2" class="poll-option" maxlength="50">
+                                        <button class="poll-option-remove" onclick="this.parentElement.remove()" title="Remove">✕</button>
+                                    </div>
                                 </div>
                                 <div class="poll-actions">
                                     <button class="btn btn-small" onclick="app.addPollOption()">+ Add</button>
@@ -202,7 +208,7 @@
                         <button class="btn btn-small" onclick="app.toggleNotes()" title="View Notes">
                             <span>📝</span> Notes
                         </button>
-                        <button class="btn btn-text" onclick="app.leaveRoom()">Leave</button>
+                        <button class="btn btn-danger btn-small" onclick="app.leaveRoom()">Leave</button>
                     </div>
                 </header>
 

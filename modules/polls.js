@@ -213,13 +213,24 @@ class PollManager {
             return;
         }
 
+        const row = document.createElement('div');
+        row.className = 'poll-option-row';
+
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'poll-option';
         input.placeholder = `Option ${currentCount + 1}`;
         input.maxLength = 50;
-        
-        optionsContainer.appendChild(input);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'poll-option-remove';
+        removeBtn.title = 'Remove';
+        removeBtn.textContent = '✕';
+        removeBtn.onclick = () => row.remove();
+
+        row.appendChild(input);
+        row.appendChild(removeBtn);
+        optionsContainer.appendChild(row);
     }
 }
 
