@@ -1808,21 +1808,27 @@ input:checked + .slider:before {
     }
 
     .features {
-        gap: 1rem;
-        flex-wrap: wrap;
-        justify-content: center;
+        gap: 0;
+        flex-wrap: nowrap;
+        justify-content: space-around;
+        width: 100%;
+        margin-top: 1rem;
     }
 
     .feature {
-        min-width: 80px;
+        flex: 1;
+        min-width: 0;
+        gap: 0.3rem;
     }
 
     .feature span {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
     }
 
     .feature small {
-        font-size: 0.8rem;
+        font-size: 0.7rem;
+        text-align: center;
+        white-space: nowrap;
     }
 
     /* ===== MODAL MOBILE ===== */
@@ -1830,6 +1836,21 @@ input:checked + .slider:before {
         width: 95%;
         padding: 1rem;
         margin: 10px;
+    }
+
+    #notifications {
+        top: 70px;
+        right: 0.75rem;
+        gap: 0.5rem;
+    }
+
+    .notification {
+        min-width: 0;
+        max-width: calc(100vw - 1.5rem);
+        padding: 0.6rem 0.9rem;
+        font-size: 0.8rem;
+        gap: 0.5rem;
+        border-radius: 0.4rem;
     }
 
     .modal-header h3 {
