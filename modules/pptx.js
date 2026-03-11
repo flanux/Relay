@@ -47,7 +47,7 @@ class PPTXRenderer {
         if (!files || files.length === 0) return;
 
         if (window.app) {
-            window.app.showNotification('⏳ Processing files...', 'info');
+            window.app.showNotification('Processing files...', 'info');
         }
 
         try {
@@ -157,55 +157,72 @@ class PPTXRenderer {
         }
 
         if (window.app) {
-            window.app.showNotification(`✅ ${file.name} (${pdf.numPages} pages)`, 'success');
+            window.app.showNotification(`${file.name} (${pdf.numPages} pages)`, 'success');
         }
     }
 
     async loadImages(files) {
         console.log(`🖼️ Loading ${files.length} images`);
-        
-        // Remove old image gallery
-        const oldImagesId = 'images-1';
-        if (window.app.presentationManager) {
-            window.app.presentationManager.remove(oldImagesId);
-        }
-        if (window.app.sourceManager) {
-            window.app.sourceManager.removeSource(oldImagesId);
-        }
 
-        // Create new presentation
-        if (!window.app.presentationManager) {
-            console.error('PresentationManager not initialized!');
-            return;
+        const imagesId = 'images-1';
+        // Check sourceManager — if source was removed (e.g. last slide deleted), treat as new
+        const isNew = !window.app.sourceManager?.sources.has(imagesId);
+
+        // Clean up any orphaned presentation data from a previous removal
+        if (isNew && window.app.presentationManager?.presentations.has(imagesId)) {
+            window.app.presentationManager.remove(imagesId);
         }
 
-        window.app.presentationManager.create(oldImagesId, 'images', {
-            title: `Images (${files.length})`,
-            icon: '🖼️'
-        });
-
-        // Load all images
-        for (let file of files) {
-            const imageData = await this.fileToDataURL(file);
-            const compressedData = await this.compressImage(imageData, 0.7);
-            
-            window.app.presentationManager.addSlide(oldImagesId, compressedData);
-        }
-
-        console.log(`✅ Images loaded: ${files.length}`);
-
-        // Register as source
-        if (window.app.sourceManager) {
-            window.app.sourceManager.registerSource(oldImagesId, 'images', {
-                presentationId: oldImagesId
-            }, {
+        if (isNew) {
+            if (!window.app.presentationManager) {
+                console.error('PresentationManager not initialized!');
+                return;
+            }
+            window.app.presentationManager.create(imagesId, 'images', {
                 title: `Images (${files.length})`,
-                icon: '🖼️'
+                icon: '<i class="fa-solid fa-images"></i>'
             });
         }
 
+        // Append images to existing or new presentation
+        for (let file of files) {
+            const imageData = await this.fileToDataURL(file);
+            const compressedData = await this.compressImage(imageData, 0.7);
+            window.app.presentationManager.addSlide(imagesId, compressedData);
+        }
+
+        const pres = window.app.presentationManager.presentations.get(imagesId);
+        const totalCount = pres.slides.length;
+        const newTitle = `Images (${totalCount})`;
+
+        console.log(`✅ Images loaded: ${totalCount} total`);
+
+        if (isNew) {
+            // Register as a new source tab
+            if (window.app.sourceManager) {
+                window.app.sourceManager.registerSource(imagesId, 'images', {
+                    presentationId: imagesId
+                }, {
+                    title: newTitle,
+                    icon: '<i class="fa-solid fa-images"></i>'
+                });
+            }
+        } else {
+            // Update existing tab title without re-registering (avoids re-activating source)
+            const source = window.app.sourceManager?.getSource(imagesId);
+            if (source) source.metadata.title = newTitle;
+            const tab = document.querySelector(`[data-source-id="${imagesId}"]`);
+            if (tab) {
+                const titleEl = tab.querySelector('.tab-title');
+                if (titleEl) titleEl.textContent = newTitle;
+            }
+        }
+
         if (window.app) {
-            window.app.showNotification(`✅ Loaded ${files.length} image(s)`, 'success');
+            const msg = isNew
+                ? `Loaded ${files.length} image(s)`
+                : `Added ${files.length} image(s) — ${totalCount} total`;
+            window.app.showNotification(msg, 'success');
         }
     }
 
@@ -370,7 +387,7 @@ class PPTXRenderer {
         
         // Show notification
         if (window.app) {
-            window.app.showNotification(`📊 Presentation loaded (${this.slides.length} slides)`, 'success');
+            window.app.showNotification(`Presentation loaded (${this.slides.length} slides)`, 'success');
         }
     }
 

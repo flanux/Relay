@@ -86,7 +86,15 @@ class DeskDockApp {
             if (e.altKey && e.key >= '1' && e.key <= '9') {
                 e.preventDefault();
                 const index = parseInt(e.key) - 1;
-                this.sourceManager.activateSourceByIndex(index);
+                const sourceIds = Array.from(this.sourceManager.sources.keys());
+                const targetId = sourceIds[index];
+                const targetSource = targetId ? this.sourceManager.getSource(targetId) : null;
+                // Alt+N on an already-active images tab deletes the current slide
+                if (targetSource && this.sourceManager.activeSourceId === targetId && targetSource.type === 'images') {
+                    this.deleteCurrentSlide(targetId);
+                } else {
+                    this.sourceManager.activateSourceByIndex(index);
+                }
             }
         });
         
@@ -254,11 +262,14 @@ class DeskDockApp {
         const index = this.sourceManager.getAllSources().findIndex(s => s.id === source.id);
         const shortcut = index < 9 ? `Alt+${index + 1}` : '';
         
+        const closeAction = source.type === 'images'
+            ? `app.deleteCurrentSlide('${source.id}')`
+            : `app.removeSource('${source.id}')`;
         tab.innerHTML = `
             <span class="tab-icon">${source.metadata.icon}</span>
             <span class="tab-title">${source.metadata.title}</span>
             ${shortcut ? `<span class="tab-shortcut">${shortcut}</span>` : ''}
-            <span class="tab-close" onclick="event.stopPropagation(); app.removeSource('${source.id}')">×</span>
+            <span class="tab-close" onclick="event.stopPropagation(); ${closeAction}">×</span>
         `;
         
         tab.onclick = () => {
@@ -414,6 +425,64 @@ class DeskDockApp {
         if (this.sourceManager) {
             this.sourceManager.removeSource(sourceId);
         }
+        // Also clean up from presentationManager to allow fresh re-upload
+        if (this.presentationManager) {
+            this.presentationManager.remove(sourceId);
+        }
+    }
+
+    deleteCurrentSlide(sourceId) {
+        const source = this.sourceManager?.getSource(sourceId);
+        if (!source || !source.data?.presentationId) return;
+
+        const presId = source.data.presentationId;
+        const pres = this.presentationManager?.presentations.get(presId);
+        if (!pres || !pres.slides.length) return;
+
+        // Remove the current slide
+        const idx = pres.current;
+        pres.slides.splice(idx, 1);
+        // Re-index remaining slides
+        pres.slides.forEach((s, i) => { s.index = i; });
+
+        if (pres.slides.length === 0) {
+            // Last slide gone — remove source and presentation entirely
+            this.sourceManager.removeSource(sourceId);
+            this.presentationManager.remove(presId);
+            // Clear the preview area so the deleted image doesn't linger
+            const previewPlaceholder = document.getElementById('previewPlaceholder');
+            if (previewPlaceholder) {
+                previewPlaceholder.innerHTML = `
+                    <span class="icon"><i class="fa-solid fa-desktop"></i></span>
+                    <p>Click "Start Sharing" to begin</p>
+                `;
+                previewPlaceholder.style.display = 'flex';
+                previewPlaceholder.classList.remove('hidden');
+            }
+            const leftArrow = document.getElementById('navArrowLeft');
+            const rightArrow = document.getElementById('navArrowRight');
+            if (leftArrow) leftArrow.style.display = 'none';
+            if (rightArrow) rightArrow.style.display = 'none';
+            // Notify participants to reset their view
+            if (this.p2p) {
+                this.p2p.broadcast({ type: 'slide_cleared' });
+            }
+        } else {
+            // Clamp pointer so it stays in-bounds
+            pres.current = Math.min(idx, pres.slides.length - 1);
+
+            // Update tab title
+            const newTitle = `Images (${pres.slides.length})`;
+            source.metadata.title = newTitle;
+            const tab = document.querySelector(`[data-source-id="${sourceId}"]`);
+            if (tab) {
+                const titleEl = tab.querySelector('.tab-title');
+                if (titleEl) titleEl.textContent = newTitle;
+            }
+
+            // Re-render the now-current slide
+            this.renderActiveSource(source);
+        }
     }
 
     async shareCurrentToParticipants() {
@@ -560,7 +629,7 @@ class DeskDockApp {
             
             li.innerHTML = `
                 <div class="file-info">
-                    <strong>📄 ${file.name}</strong>
+                    <strong><i class="fa-solid fa-file"></i> ${file.name}</strong>
                     <span class="file-meta">${fileSize} • ${timestamp}</span>
                 </div>
                 <button class="btn btn-small" onclick="app.downloadFile(${index})">Download</button>
@@ -715,7 +784,7 @@ class DeskDockApp {
 
         this.p2p.onPeerDisconnect((peerId) => {
             console.log("❌ Peer disconnected:", peerId);
-            this.updateParticipantCount();
+            this.removeParticipant(peerId);
         });
     }
 
@@ -773,6 +842,10 @@ class DeskDockApp {
             case 'file_metadata':
                 this.receiveFileMetadata(data);
                 break;
+
+            case 'file_data':
+                this.receiveFileData(data);
+                break;
             
             // ✅ NEW: PowerPoint presentation messages
             case 'pptx_loaded':
@@ -815,13 +888,26 @@ class DeskDockApp {
                     console.log('📥 Participant: Source removed -', data.sourceId);
                 }
                 break;
+
+            case 'slide_cleared':
+                // Host deleted all slides — reset participant view to waiting state
+                const liveSlide = document.getElementById('liveSlide');
+                const slideOverlay = document.getElementById('slideOverlay');
+                const liveBadge = document.getElementById('liveBadge');
+                if (liveSlide) {
+                    liveSlide.src = '';
+                    liveSlide.classList.remove('active');
+                }
+                if (slideOverlay) slideOverlay.classList.remove('hidden');
+                if (liveBadge) liveBadge.classList.remove('active');
+                break;
             
             case 'file_shared':
                 // Participant receives shared file
                 console.log('📥 Received file:', data.file.name);
                 this.files.push(data.file);
                 this.updateFilesList();
-                this.showNotification(`📥 New file: ${data.file.name}`, 'success');
+                this.showNotification(`New file: ${data.file.name}`, 'success');
                 break;
         }
     }
@@ -839,7 +925,7 @@ class DeskDockApp {
         if (!document.querySelector(`[data-peer-id="${peerId}"]`)) {
             const li = document.createElement('li');
             li.dataset.peerId = peerId;
-            li.textContent = `👤 ${username}`;
+            li.innerHTML = `<i class="fa-solid fa-user"></i> ${username}<span class="status-dot connected" title="Connected"></span>`;
             list.appendChild(li);
         }
 
@@ -855,7 +941,12 @@ class DeskDockApp {
         this.participants.delete(peerId);
         
         const li = document.querySelector(`[data-peer-id="${peerId}"]`);
-        if (li) li.remove();
+        if (li) {
+            li.classList.add('disconnected');
+            const dot = li.querySelector('.status-dot');
+            if (dot) { dot.classList.remove('connected'); dot.classList.add('disconnected'); dot.title = 'Disconnected'; }
+            setTimeout(() => li.remove(), 2000);
+        }
 
         const list = document.getElementById('participantList');
         if (list && list.children.length === 0) {
@@ -874,17 +965,33 @@ class DeskDockApp {
     }
 
     closeRoom() {
-        if (!confirm('Close room? All participants will be disconnected.')) return;
-        this.cleanup();
-        this.showView('landing');
-        this.showNotification('Room closed', 'info');
+        showConfirm({
+            title: 'Close Room',
+            message: 'Close room? All participants will be disconnected.',
+            confirmText: 'Close',
+            cancelText: 'Cancel',
+            danger: true,
+            onConfirm: () => {
+                this.cleanup();
+                this.showView('landing');
+                this.showNotification('Room closed', 'info');
+            }
+        });
     }
 
     leaveRoom() {
-        if (!confirm('Leave room?')) return;
-        this.cleanup();
-        this.showView('landing');
-        this.showNotification('Left room', 'info');
+        showConfirm({
+            title: 'Leave Room',
+            message: 'Leave the room?',
+            confirmText: 'Leave',
+            cancelText: 'Cancel',
+            danger: true,
+            onConfirm: () => {
+                this.cleanup();
+                this.showView('landing');
+                this.showNotification('Left room', 'info');
+            }
+        });
     }
 
     cleanup() {
@@ -1003,16 +1110,16 @@ class DeskDockApp {
         this.showNotification('Slide saved', 'success');
     }
 
-    toggleAutoSave() {
-        const checkbox = document.getElementById('autoSave');
-        if (checkbox && this.slideSync) {
-            this.slideSync.setAutoSave(checkbox.checked);
-            const status = checkbox.checked ? 'ON' : 'OFF';
-            const label = checkbox.closest('.auto-save-toggle')?.querySelector('small');
-            if (label) label.textContent = `Auto-capture (${status})`;
-            this.showNotification(`Auto-capture ${status}`, 'info');
-        }
-    }
+    // toggleAutoSave() {
+    //     const checkbox = document.getElementById('autoSave');
+    //     if (checkbox && this.slideSync) {
+    //         this.slideSync.setAutoSave(checkbox.checked);
+    //         const status = checkbox.checked ? 'ON' : 'OFF';
+    //         const label = checkbox.closest('.auto-save-toggle')?.querySelector('small');
+    //         if (label) label.textContent = `Auto-capture (${status})`;
+    //         this.showNotification(`Auto-capture ${status}`, 'info');
+    //     }
+    // }
 
     async downloadAllSlides() {
         await this.slideSync.downloadAllSlides();
@@ -1048,7 +1155,25 @@ class DeskDockApp {
 
     // ========== Notes ==========
     toggleNotes() { this.notesManager?.toggle(); }
-    clearNotes() { this.notesManager?.clearNotes(); }
+    clearNotes() {
+        showConfirm({
+            title: 'Clear Notes',
+            message: 'Clear all notes? This cannot be undone.',
+            confirmText: 'OK',
+            cancelText: 'Cancel',
+            danger: true,
+            onConfirm: () => {
+                const textarea = document.getElementById('notesTextarea');
+                if (textarea) textarea.value = '';
+                if (this.notesManager) {
+                    this.notesManager.lastContent = '';
+                    if (this.storage && this.roomId) this.storage.clearNotes(this.roomId);
+                    this.p2p?.broadcast({ type: 'notes_cleared', timestamp: Date.now() });
+                    this.notesManager.showSaveStatus('Notes cleared');
+                }
+            }
+        });
+    }
 
     // ========== Files ==========
     setupDragAndDrop() {
@@ -1104,6 +1229,11 @@ class DeskDockApp {
 
             const reader = new FileReader();
             reader.onload = (e) => {
+                // Store data locally so the host can also download the file
+                const entry = this.files.find(f => f.id === fileInfo.id);
+                if (entry) entry.data = e.target.result;
+                this.enableDownloadButton(fileInfo.id);
+
                 this.p2p.broadcast({
                     type: 'file_data',
                     fileId: fileInfo.id,
@@ -1130,6 +1260,7 @@ class DeskDockApp {
         if (empty) empty.remove();
 
         const li = document.createElement('li');
+        li.className = 'file-item';
         li.dataset.fileId = fileInfo.id;
         
         const info = document.createElement('div');
@@ -1146,7 +1277,64 @@ class DeskDockApp {
         info.appendChild(name);
         info.appendChild(size);
         li.appendChild(info);
+
+        if (isParticipant) {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-small download-btn';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+            btn.title = 'Waiting for file data...';
+            btn.onclick = () => this.downloadFileById(fileInfo.id);
+            li.appendChild(btn);
+        } else {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-small btn-danger';
+            btn.innerHTML = '<i class="fa-solid fa-trash"></i> Remove';
+            btn.title = 'Remove file';
+            btn.onclick = () => this.removeFile(fileInfo.id);
+            li.appendChild(btn);
+        }
+
         list.appendChild(li);
+    }
+
+    removeFile(fileId) {
+        this.files = this.files.filter(f => f.id !== fileId);
+        const li = document.querySelector(`[data-file-id="${fileId}"]`);
+        if (li) li.remove();
+        const list = document.getElementById('fileList');
+        if (list && list.children.length === 0) {
+            list.innerHTML = '<li class="empty">No files shared yet</li>';
+        }
+        this.updateFileCount();
+    }
+
+    enableDownloadButton(fileId) {
+        const li = document.querySelector(`[data-file-id="${fileId}"]`);
+        if (!li) return;
+        const btn = li.querySelector('.download-btn');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-download"></i> Download';
+            btn.title = 'Download file';
+        }
+    }
+
+    downloadFileById(fileId) {
+        const file = this.files.find(f => f.id === fileId);
+        if (!file || !file.data) return;
+        const a = document.createElement('a');
+        a.href = file.data;
+        a.download = file.name;
+        a.click();
+    }
+
+    receiveFileData(data) {
+        const file = this.files.find(f => f.id === data.fileId);
+        if (file) {
+            file.data = data.data;
+            this.enableDownloadButton(data.fileId);
+        }
     }
 
     formatFileSize(bytes) {
@@ -1381,7 +1569,7 @@ class DeskDockApp {
         const target = document.getElementById(viewId);
         if (target) {
             target.classList.add('active');
-            target.style.display = 'block';
+            target.style.display = viewId === 'landing' ? 'flex' : 'block';
             window.scrollTo(0, 0);
         }
     }
@@ -1428,3 +1616,30 @@ class DeskDockApp {
 const app = new DeskDockApp();
 window.app = app;
 console.log('🔗 DeskDock loaded successfully');
+
+// Global confirm modal utility
+window.showConfirm = function({ title, message, confirmText = 'OK', cancelText = 'Cancel', danger = false, onConfirm }) {
+    const existing = document.getElementById('confirmModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'confirmModal';
+    modal.className = 'modal confirm-modal';
+    modal.innerHTML = `
+        <div class="modal-content confirm-modal-content">
+            <h3 class="confirm-title">${title}</h3>
+            <p class="confirm-message">${message}</p>
+            <div class="confirm-actions">
+                <button class="btn btn-secondary" id="confirmCancelBtn">${cancelText}</button>
+                <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="confirmOkBtn">${confirmText}</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const close = () => modal.remove();
+    modal.querySelector('#confirmCancelBtn').onclick = close;
+    modal.querySelector('#confirmOkBtn').onclick = () => { close(); onConfirm(); };
+    modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+};

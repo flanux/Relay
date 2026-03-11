@@ -47,7 +47,8 @@ body {
     align-items: center;
     justify-content: center;
     padding: 2rem;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 #landing.active {
@@ -56,11 +57,11 @@ body {
 
 .hero {
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 1.5rem;
 }
 
 .logo {
-    font-size: 4rem;
+    font-size: 2.5rem;
     margin-bottom: 1rem;
     animation: float 3s ease-in-out infinite;
 }
@@ -108,7 +109,7 @@ h1 {
 .features {
     display: flex;
     gap: 2rem;
-    margin-top: 3rem;
+    margin-top: 1.5rem;
 }
 
 .feature {
@@ -119,12 +120,12 @@ h1 {
 }
 
 .feature span {
-    font-size: 2rem;
+    font-size: 1.6rem;
 }
 
 .feature small {
     color: var(--text-muted);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 
 /* ========== HEADER (YouTube-Style) ========== */
@@ -155,14 +156,14 @@ h1 {
     gap: 0.5rem;
     background: var(--bg-hover);
     border-radius: 0.5rem;
-    cursor: pointer;
     transition: background 0.2s;
-    height: 2rem;
-    width: 14rem;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    white-space: nowrap;
 }
 
 .code-display:hover {
-    background: var(--primary-dark);
+    background: rgba(99, 102, 241, 0.15);
 }
 
 .code-display .label {
@@ -176,6 +177,30 @@ h1 {
     font-size: 1.1rem;
     font-weight: 600;
     letter-spacing: 1px;
+}
+
+.copy-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: white;
+    font-size: 0.95rem;
+    padding: 0.15rem 0.35rem;
+    border-radius: 0.3rem;
+    transition: background 0.2s, transform 0.15s;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.copy-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.15);
+}
+
+.copy-btn:active {
+    transform: scale(0.95);
 }
 
 .copy-hint {
@@ -448,11 +473,33 @@ h1 {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    transition: opacity 0.3s;
+}
+
+.user-list li.disconnected {
+    opacity: 0.45;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.status-dot.connected {
+    background: #22c55e;
+    box-shadow: 0 0 4px #22c55e;
+}
+
+.status-dot.disconnected {
+    background: #ef4444;
+    box-shadow: 0 0 4px #ef4444;
 }
 
 .user-list li::before {
-    content: '👤';
-    font-size: 1.2rem;
+    content: '';
 }
 
 .user-list .empty {
@@ -512,6 +559,17 @@ h1 {
     margin: 0.75rem 0;
 }
 
+.poll-option-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.poll-option-row .poll-option {
+    flex: 1;
+}
+
 .poll-option {
     padding: 0.75rem;
     background: var(--bg-hover);
@@ -519,6 +577,23 @@ h1 {
     border-radius: 0.5rem;
     color: var(--text);
     font-size: 0.9rem;
+}
+
+.poll-option-remove {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: 0.3rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.poll-option-remove:hover {
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.1);
 }
 
 .poll-actions {
@@ -575,7 +650,6 @@ h1 {
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -583,13 +657,21 @@ h1 {
 }
 
 .btn-primary {
-    background: var(--primary);
+    background: var(--primary-dark);
+    color: white;
+}
+
+.btn-primary,
+.btn-primary * {
     color: white;
 }
 
 .btn-primary:hover {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
+    background: var(--primary);
+}
+
+.btn-primary .btn-text small {
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .btn-secondary {
@@ -598,7 +680,7 @@ h1 {
 }
 
 .btn-secondary:hover {
-    background: var(--bg-lighter);
+    background: #3e5068;
 }
 
 .btn-danger {
@@ -615,13 +697,13 @@ h1 {
     font-size: 0.85rem;
 }
 
-.btn-text {
+button.btn-text {
     background: transparent;
     color: var(--text-muted);
     padding: 0.5rem 1rem;
 }
 
-.btn-text:hover {
+button.btn-text:hover {
     color: var(--text);
     background: var(--bg-hover);
 }
@@ -666,6 +748,10 @@ textarea {
     flex-direction: column;
 }
 
+#participantNotesPanel {
+    right: 350px;
+}
+
 .notes-header {
     padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--border);
@@ -690,7 +776,8 @@ textarea {
     color: var(--success);
 }
 
-#notesTextarea {
+#notesTextarea,
+#participantNotesTextarea {
     flex: 1;
     border: none;
     border-radius: 0;
@@ -753,12 +840,17 @@ textarea {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(15, 23, 42, 0.9); /* Match your --bg color */
+    background: rgba(15, 23, 42, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10000; /* Increased to stay above the sidebar */
+    z-index: 10000;
     backdrop-filter: blur(5px);
+}
+
+.confirm-modal {
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: none;
 }
 
 .modal.hidden {
@@ -836,15 +928,45 @@ textarea {
     font-size: 0.9rem;
 }
 
+/* ========== CONFIRM MODAL ========== */
+.confirm-modal-content {
+    max-width: 300px;
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.confirm-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.confirm-message {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 1.25rem;
+    line-height: 1.5;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.confirm-actions .btn {
+    min-width: 80px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
+}
+
 /* ========== PARTICIPANT VIEW STYLES (Missing from current CSS) ========== */
 .participant-layout {
     display: grid;
     grid-template-columns: 1fr 350px;
     grid-template-rows: auto 1fr;
-    gap: 1rem;
-    padding: 1rem;
-    max-width: 1600px;
-    margin: 0 auto;
+    gap: 0;
+    padding: 0;
 }
 
 .slide-section {
@@ -852,16 +974,16 @@ textarea {
     grid-row: 1 / 3;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0;
 }
 
 .slide-viewer {
     flex: 1;
     position: relative;
     background: #000;
-    border-radius: 0.75rem;
+    border-radius: 0;
     overflow: hidden;
-    border: 1px solid var(--border);
+    border: none;
     min-height: 400px;
 }
 
@@ -932,8 +1054,9 @@ textarea {
     align-items: center;
     padding: 1rem;
     background: var(--bg-card);
-    border-radius: 0.75rem;
-    border: 1px solid var(--border);
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid var(--border);
     gap: 1rem;
 }
 
@@ -993,9 +1116,11 @@ input:checked + .slider:before {
     grid-column: 2;
     grid-row: 1;
     background: var(--bg-card);
-    border-radius: 0.75rem;
+    border-radius: 0;
     padding: 1rem;
-    border: 1px solid var(--border);
+    border: none;
+    border-left: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     max-height: 300px;
@@ -1004,18 +1129,6 @@ input:checked + .slider:before {
 .gallery-section h4 {
     font-size: 1rem;
     margin-bottom: 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.toggle-indicator {
-    font-size: 0.8rem;
-    transition: transform 0.3s;
-}
-
-.gallery-section.collapsed .toggle-indicator {
-    transform: rotate(-90deg);
 }
 
 .slide-gallery {
@@ -1027,11 +1140,23 @@ input:checked + .slider:before {
     margin-bottom: 0.75rem;
 }
 
+/* When gallery only has the empty-state paragraph, switch to block so text isn't crammed into an 80px grid column */
+.slide-gallery:has(> .empty-state) {
+    display: block;
+}
+
 .empty-state {
     color: var(--text-muted);
     text-align: center;
-    padding: 2rem;
-    font-size: 0.9rem;
+    padding: 1rem 0.5rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    grid-column: 1 / -1;
+}
+
+.gallery-empty {
+    white-space: nowrap;
+    grid-column: 1 / -1;
 }
 
 .slide-thumbnail {
@@ -1081,25 +1206,43 @@ input:checked + .slider:before {
     grid-column: 2;
     grid-row: 2;
     background: var(--bg-card);
-    border-radius: 0.75rem;
+    border-radius: 0;
     padding: 1rem;
-    border: 1px solid var(--border);
+    border: none;
+    border-left: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     overflow: hidden;
 }
 
+.tools-section-header {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.tools-section-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .tabs {
     display: flex;
-    gap: 0.5rem;
+    flex-wrap: nowrap;
+    gap: 0;
     margin-bottom: 1rem;
     border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
 }
 
 .tab-btn {
     flex: 1;
-    padding: 0.75rem;
+    padding: 0.75rem 0.5rem;
     background: none;
     border: none;
     color: var(--text-muted);
@@ -1109,7 +1252,11 @@ input:checked + .slider:before {
     border-bottom: 2px solid transparent;
     margin-bottom: -1px;
     font-size: 0.85rem;
-    min-width: fit-content;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
 }
 
 .tab-btn:hover {
@@ -1192,6 +1339,8 @@ input:checked + .slider:before {
     padding: 0.75rem;
     border-radius: 0.5rem;
     max-width: 80%;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .chat-message.own {
@@ -1372,6 +1521,10 @@ input:checked + .slider:before {
         margin-bottom: 0.5rem;
     }
 
+    .slide-gallery:has(> .empty-state) {
+        display: block !important;
+    }
+
     /* Tools section - at bottom */
     .tools-section {
         grid-column: unset !important;
@@ -1386,20 +1539,28 @@ input:checked + .slider:before {
         min-height: 300px;
     }
 
-    .tools-section h4 {
+    .tools-section h4,
+    .tools-section-header h4 {
         font-size: 0.95rem;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0;
+    }
+
+    .tools-section-header {
+        padding-bottom: 0.5rem;
+        margin-bottom: 0;
     }
 
     .tabs {
-        gap: 0.25rem;
+        flex-wrap: nowrap;
+        gap: 0;
         margin-bottom: 0.75rem;
     }
 
     .tab-btn {
-        padding: 0.6rem 0.5rem;
-        font-size: 0.8rem;
-        min-width: auto;
+        padding: 0.6rem 0.25rem;
+        font-size: 0.78rem;
+        min-width: 0;
+        flex: 1;
     }
 
     .tab-content {

@@ -241,7 +241,7 @@ class SlideSync {
         if (!gallery) return;
 
         // Remove empty state
-        const emptyState = gallery.querySelector('.empty-state');
+        const emptyState = document.getElementById('galleryEmptyState');
         if (emptyState) {
             emptyState.remove();
         }
@@ -256,7 +256,7 @@ class SlideSync {
 
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove';
-        removeBtn.textContent = '×';
+        removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
         removeBtn.onclick = (e) => {
             e.stopPropagation();
             this.deleteSlide(slideId);
@@ -285,6 +285,14 @@ class SlideSync {
         }
 
         this.updateSlideCount();
+    }
+
+    updateSlideCount() {
+        const gallery = document.getElementById('slideGallery');
+        const countEl = document.getElementById('savedCount');
+        if (countEl && gallery) {
+            countEl.textContent = gallery.querySelectorAll('.slide-thumbnail').length;
+        }
     }
 
     viewSlide(imageData) {
@@ -326,7 +334,9 @@ class SlideSync {
         const slides = this.storage.getSlides(this.p2p.roomId);
 
         if (slides.length === 0) {
-            alert('No slides to download');
+            if (window.app && window.app.showNotification) {
+                window.app.showNotification('No slides saved yet', 'info');
+            }
             return;
         }
 
