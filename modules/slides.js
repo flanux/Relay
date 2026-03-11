@@ -334,7 +334,9 @@ class SlideSync {
         const slides = this.storage.getSlides(this.p2p.roomId);
 
         if (slides.length === 0) {
-            alert('No slides to download');
+            if (window.app && window.app.showNotification) {
+                window.app.showNotification('No slides saved yet', 'info');
+            }
             return;
         }
 

@@ -86,7 +86,15 @@ class DeskDockApp {
             if (e.altKey && e.key >= '1' && e.key <= '9') {
                 e.preventDefault();
                 const index = parseInt(e.key) - 1;
-                this.sourceManager.activateSourceByIndex(index);
+                const sourceIds = Array.from(this.sourceManager.sources.keys());
+                const targetId = sourceIds[index];
+                const targetSource = targetId ? this.sourceManager.getSource(targetId) : null;
+                // Alt+N on an already-active images tab deletes the current slide
+                if (targetSource && this.sourceManager.activeSourceId === targetId && targetSource.type === 'images') {
+                    this.deleteCurrentSlide(targetId);
+                } else {
+                    this.sourceManager.activateSourceByIndex(index);
+                }
             }
         });
         
@@ -254,11 +262,14 @@ class DeskDockApp {
         const index = this.sourceManager.getAllSources().findIndex(s => s.id === source.id);
         const shortcut = index < 9 ? `Alt+${index + 1}` : '';
         
+        const closeAction = source.type === 'images'
+            ? `app.deleteCurrentSlide('${source.id}')`
+            : `app.removeSource('${source.id}')`;
         tab.innerHTML = `
             <span class="tab-icon">${source.metadata.icon}</span>
             <span class="tab-title">${source.metadata.title}</span>
             ${shortcut ? `<span class="tab-shortcut">${shortcut}</span>` : ''}
-            <span class="tab-close" onclick="event.stopPropagation(); app.removeSource('${source.id}')">×</span>
+            <span class="tab-close" onclick="event.stopPropagation(); ${closeAction}">×</span>
         `;
         
         tab.onclick = () => {
@@ -413,6 +424,46 @@ class DeskDockApp {
     removeSource(sourceId) {
         if (this.sourceManager) {
             this.sourceManager.removeSource(sourceId);
+        }
+        // Also clean up from presentationManager to allow fresh re-upload
+        if (this.presentationManager) {
+            this.presentationManager.remove(sourceId);
+        }
+    }
+
+    deleteCurrentSlide(sourceId) {
+        const source = this.sourceManager?.getSource(sourceId);
+        if (!source || !source.data?.presentationId) return;
+
+        const presId = source.data.presentationId;
+        const pres = this.presentationManager?.presentations.get(presId);
+        if (!pres || !pres.slides.length) return;
+
+        // Remove the current slide
+        const idx = pres.current;
+        pres.slides.splice(idx, 1);
+        // Re-index remaining slides
+        pres.slides.forEach((s, i) => { s.index = i; });
+
+        if (pres.slides.length === 0) {
+            // Last slide gone — remove source and presentation entirely
+            this.sourceManager.removeSource(sourceId);
+            this.presentationManager.remove(presId);
+        } else {
+            // Clamp pointer so it stays in-bounds
+            pres.current = Math.min(idx, pres.slides.length - 1);
+
+            // Update tab title
+            const newTitle = `Images (${pres.slides.length})`;
+            source.metadata.title = newTitle;
+            const tab = document.querySelector(`[data-source-id="${sourceId}"]`);
+            if (tab) {
+                const titleEl = tab.querySelector('.tab-title');
+                if (titleEl) titleEl.textContent = newTitle;
+            }
+
+            // Re-render the now-current slide
+            this.renderActiveSource(source);
         }
     }
 
