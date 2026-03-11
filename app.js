@@ -242,6 +242,9 @@ class DeskDockApp {
             console.error('❌ Tab bar not found!');
             return;
         }
+
+        // Screen share doesn't need a tab — the button state is enough
+        if (source.type === 'screen') return;
         
         // Check if tab already exists
         const existingTab = document.querySelector(`[data-source-id="${source.id}"]`);
@@ -1028,7 +1031,7 @@ class DeskDockApp {
                 btn.classList.remove('btn-primary');
                 this.showNotification('Screen sharing started', 'success');
                 
-                // ✅ NEW: Register screen share as a source
+                // ✅ NEW: Register screen share as a source and activate it
                 if (this.sourceManager) {
                     this.sourceManager.registerSource('screen-1', 'screen', {
                         slideSync: this.slideSync,
@@ -1037,6 +1040,7 @@ class DeskDockApp {
                         title: 'Screen Share',
                         icon: '🖥️'
                     });
+                    this.sourceManager.activateSource('screen-1');
                 }
 
                 
@@ -1082,6 +1086,28 @@ class DeskDockApp {
             // ✅ NEW: Remove screen share source
             if (this.sourceManager) {
                 this.sourceManager.removeSource('screen-1');
+            }
+
+            // Restore host preview to default placeholder
+            const previewVideo = document.getElementById('previewVideo');
+            if (previewVideo) {
+                previewVideo.style.display = 'none';
+                previewVideo.classList.remove('active');
+                previewVideo.srcObject = null;
+            }
+            const previewPlaceholder = document.getElementById('previewPlaceholder');
+            if (previewPlaceholder) {
+                previewPlaceholder.innerHTML = `
+                    <span class="icon"><i class="fa-solid fa-desktop"></i></span>
+                    <p>Click "Start Sharing" to begin</p>
+                `;
+                previewPlaceholder.style.display = 'flex';
+                previewPlaceholder.classList.remove('hidden');
+            }
+
+            // Notify participants to reset their view
+            if (this.p2p) {
+                this.p2p.broadcast({ type: 'slide_cleared' });
             }
 
             if (this.previewShare) {
