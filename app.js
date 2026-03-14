@@ -779,6 +779,11 @@ class DeskDockApp {
                 type: "user_joined",
                 username: this.username || "User"
             });
+            // If we are the host, send the late-joining peer the current state
+            // (previewShare is only initialized in createRoom, not joinRoom)
+            if (this.previewShare) {
+                this.syncStateToPeer(peerId);
+            }
         });
 
         this.p2p.onMessage((peerId, data) => {
@@ -789,6 +794,49 @@ class DeskDockApp {
             console.log("❌ Peer disconnected:", peerId);
             this.removeParticipant(peerId);
         });
+    }
+
+    /**
+     * Send a late-joining peer the full current session state:
+     * active poll (if any) and all already-shared files.
+     */
+    syncStateToPeer(peerId) {
+        // Re-send active poll
+        if (this.pollManager && this.pollManager.currentPoll) {
+            const poll = this.pollManager.currentPoll;
+            this.p2p.send(peerId, {
+                type: 'poll_created',
+                poll: {
+                    id: poll.id,
+                    question: poll.question,
+                    options: poll.options
+                }
+            });
+            console.log('🔄 Synced active poll to new peer:', peerId);
+        }
+
+        // Re-send all shared files
+        this.files.forEach(file => {
+            if (!file.data) return; // skip if file data not yet loaded
+            this.p2p.send(peerId, {
+                type: 'file_metadata',
+                file: {
+                    id: file.id,
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    timestamp: file.timestamp
+                }
+            });
+            this.p2p.send(peerId, {
+                type: 'file_data',
+                fileId: file.id,
+                data: file.data
+            });
+        });
+        if (this.files.length > 0) {
+            console.log(`🔄 Synced ${this.files.length} file(s) to new peer:`, peerId);
+        }
     }
 
     handleMessage(peerId, data) {
@@ -912,6 +960,19 @@ class DeskDockApp {
                 this.updateFilesList();
                 this.showNotification(`New file: ${data.file.name}`, 'success');
                 break;
+
+            case 'file_removed': {
+                // Host removed a file — remove it from participant view too
+                this.files = this.files.filter(f => f.id !== data.fileId);
+                const removedLi = document.querySelector(`[data-file-id="${data.fileId}"]`);
+                if (removedLi) removedLi.remove();
+                const participantList = document.getElementById('participantFileList');
+                if (participantList && participantList.children.length === 0) {
+                    participantList.innerHTML = '<li class="empty">No files shared yet</li>';
+                }
+                this.updateFileCount();
+                break;
+            }
         }
     }
 
@@ -1333,6 +1394,10 @@ class DeskDockApp {
             list.innerHTML = '<li class="empty">No files shared yet</li>';
         }
         this.updateFileCount();
+        // Notify participants to remove the file from their list
+        if (this.p2p) {
+            this.p2p.broadcast({ type: 'file_removed', fileId });
+        }
     }
 
     enableDownloadButton(fileId) {
