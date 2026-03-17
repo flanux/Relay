@@ -35,8 +35,8 @@ class SlideSync {
             this.stream = await navigator.mediaDevices.getDisplayMedia({
                 video: {
                     frameRate: { ideal: 15, max: 25 },
-                    width: { ideal: 1280 }, // 720p is usually enough for slides and faster to encode
-                    height: { ideal: 720 }
+                    width: { ideal: 1920 }, // 720p is usually enough for slides and faster to encode
+                    height: { ideal: 1080 }
                 }
             });
 
@@ -171,7 +171,7 @@ class SlideSync {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
             // Convert to compressed JPEG
-            const imageData = canvas.toDataURL('image/jpeg', 0.4);
+            const imageData = canvas.toDataURL('image/jpeg', 0.85);
 
             // Broadcast to all peers
             this.p2p.broadcast({
